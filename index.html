@@ -710,11 +710,10 @@
     </div>
 
     <script type="module">
-    // 1. IMPORTS CORREGIDOS (Sin puntos suspensivos y con funciones necesarias)
+    // 1. CONFIGURACIÓN E IMPORTS DE FIREBASE
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // 2. CONFIGURACIÓN DE FIREBASE (Tus credenciales reales)
     const firebaseConfig = {
         apiKey: "AIzaSyBEHxoobhrHfE7AKJr3mWUomWzIy8ePpeo",
         authDomain: "sky-bts-cards.firebaseapp.com",
@@ -728,7 +727,36 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // ==== PUENTE PARA BOTONES HTML (Importante para que funcionen los onclick) ====
+    // 2. OBJETO DE USUARIO LOCAL (Para manejo de interfaz)
+    let currentUserData = {
+        username: "NeoSky",
+        userid: "#RM94N",
+        pfp: "https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg",
+        cards: 3,
+        friends: 3,
+        desc: "RM biased. Amante de la lectura y el arte. Namjooning is a lifestyle. 🐨💙🌿",
+        hobbies: "Lectura, Museos, Plantas, Bicicleta",
+        songs: "Wild Flower, Trivia: Love, Spring Day, Mikrokosmos",
+        tastes: "Café, Invierno, Arte Abstracto"
+    };
+
+    // 3. MONITOR DE AUTENTICACIÓN (Aquí es donde ocurre la magia)
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            console.log("Sesión activa:", user.email);
+            // Si el usuario tiene un nombre en Firebase, lo usamos
+            if(user.displayName) currentUserData.username = user.displayName;
+            currentUserData.userid = user.uid.substring(0, 6).toUpperCase();
+            updateUIWithUserData();
+        } else {
+            console.log("No hay sesión iniciada.");
+            // Aquí podrías poner: window.location.href = 'login.html'; 
+            // Por ahora solo avisamos
+            alert("No has iniciado sesión. Los cambios no se guardarán en la nube.");
+        }
+    });
+
+    // 4. EXPOSICIÓN DE FUNCIONES A WINDOW (Para que los onclick funcionen)
     window.spin = spin;
     window.showSec = showSec;
     window.openModal = openModal;
@@ -744,6 +772,7 @@
     window.submitSupport = submitSupport;
     window.changeSong = changeSong;
     window.toggleMusic = toggleMusic;
+    window.logout = () => signOut(auth).then(() => location.reload());
 
     // ==== LÓGICA DE LA RULETA ====
     let currentRotation = 0;
@@ -752,49 +781,21 @@
 
     function getSpinData() {
         const data = JSON.parse(localStorage.getItem('neosky_spins')) || { count: 0, lastReset: Date.now() };
-        const now = Date.now();
-        if (now - data.lastReset > 86400000) {
-            return { count: 0, lastReset: now };
-        }
+        if (Date.now() - data.lastReset > 86400000) return { count: 0, lastReset: Date.now() };
         return data;
-    }
-
-    function saveSpinData(data) {
-        localStorage.setItem('neosky_spins', JSON.stringify(data));
-    }
-
-    function updateSpinUI() {
-        const spinData = getSpinData();
-        const spinsLeft = Math.max(0, MAX_SPINS - spinData.count);
-        const countEl = document.getElementById('spin-count');
-        if (countEl) countEl.innerText = spinsLeft;
     }
 
     function spin() {
         if (isSpinning) return;
-
         let spinData = getSpinData();
-        if (spinData.count >= MAX_SPINS) {
-            alert("¡Ya usaste tus 2 giros de hoy! Vuelve en 24 horas ARMY. ✨");
-            return;
-        }
+        if (spinData.count >= MAX_SPINS) return alert("¡Ya usaste tus 2 giros de hoy! ✨");
 
         const wheel = document.getElementById('wheel');
         const resultDiv = document.getElementById('result');
-        const spinBtn = document.getElementById('spin-button');
-        
-        const prizes = [
-            "1 Card ❤️", "Giro Extra😎", "2 Cards👑", "Lo siento🥺",
-            "1 Card ❤️", "Giro Extra😎", "2 Cards👑", "Lo siento🥺"
-        ];
+        const prizes = ["Giro Extra😎", "1 Card❤️", "Lo siento🥺", "2 Cards👑", "Giro Extra😎", "1 Card❤️", "Lo siento🥺", "2 Cards👑"];
         
         isSpinning = true;
-        if (spinBtn) spinBtn.disabled = true;
-        if (resultDiv) resultDiv.innerText = "Girando...";
-
         const prizeIndex = Math.floor(Math.random() * prizes.length);
-        const resultText = prizes[prizeIndex];
-
         const targetAngle = (prizeIndex * 45) + 22.5;
         currentRotation = currentRotation - (currentRotation % 360) + 1440 + targetAngle; 
         
@@ -802,262 +803,149 @@
 
         setTimeout(() => {
             isSpinning = false;
-            if (spinBtn) spinBtn.disabled = false;
-            
             spinData.count++;
-            saveSpinData(spinData);
+            localStorage.setItem('neosky_spins', JSON.stringify(spinData));
             updateSpinUI();
-            
-            if (resultDiv) {
-                resultDiv.innerText = "¡Resultado: " + resultText + "!";
-            }
+            if (resultDiv) resultDiv.innerText = "¡Resultado: " + prizes[prizeIndex] + "!";
         }, 5000); 
     }
 
-    // ==== INICIALIZACIÓN Y LOADER ====
-    window.addEventListener('load', () => {
-        populateUserProfileData();
-        updateSpinUI(); 
-        
-        setTimeout(() => {
-            const loader = document.getElementById('loader');
-            if(loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.display = 'none', 800);
-            }
-        }, 2000); 
-        apply3DEffect();
-    });
+    function updateSpinUI() {
+        const spinData = getSpinData();
+        const el = document.getElementById('spin-count');
+        if (el) el.innerText = Math.max(0, MAX_SPINS - spinData.count);
+    }
 
-    // ==== GESTIÓN DE PANELES Y NAVEGACIÓN ====
+    // ==== GESTIÓN DE PERFIL Y UI ====
+    function updateUIWithUserData() {
+        document.getElementById('headerPfp').src = currentUserData.pfp;
+        document.getElementById('headerUsername').innerText = currentUserData.username;
+        document.getElementById('supportUsername').innerText = currentUserData.username;
+        document.getElementById('supportUserid').innerText = currentUserData.userid;
+    }
+
     function showSec(id, btn) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         if(btn) btn.classList.add('active');
-        closeFriendOptions(); 
     }
 
-    // ==== GESTIÓN DE MODALES ====
-    function openModal(modalId) {
-        closeProfileDropdown();
-        closeFriendOptions();
-        
-        const modal = document.getElementById(modalId);
+    function openModal(id) {
+        const modal = document.getElementById(id);
         if(modal) {
             modal.classList.add('active');
-            if(modalId === 'modalViewProfile') populateViewProfile();
-            if(modalId === 'modalEditProfile') populateEditProfileForm();
-            apply3DEffect(); 
+            if(id === 'modalViewProfile') populateViewProfile();
+            if(id === 'modalEditProfile') populateEditForm();
         }
     }
 
     function closeModal() {
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-        const zoomContent = document.getElementById('zoomContent');
-        if(zoomContent) zoomContent.innerHTML = ""; 
     }
 
-    function closeModalOnOverlay(event) {
-        if (event.target.classList.contains('modal-overlay')) {
-            closeModal();
-        }
-    }
-
-    // ==== EFECTO 3D DE CARTAS ====
-    function apply3DEffect() {
-        const wrappers = document.querySelectorAll('.card-wrapper');
-        wrappers.forEach(w => {
-            const card = w.querySelector('.card-main');
-            if(w.dataset.listenerAdded) return;
-            w.dataset.listenerAdded = true;
-
-            w.addEventListener('mousemove', (e) => {
-                const rect = w.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / rect.width - 0.5; 
-                const y = (e.clientY - rect.top) / rect.height - 0.5; 
-                card.style.transform = `rotateX(${y * -40}deg) rotateY(${x * 40}deg) scale(1.02)`;
-            });
-            
-            w.addEventListener('mouseleave', () => {
-                card.style.transform = `rotateX(0deg) rotateY(0deg) scale(1)`;
-            });
-        });
-    }
-
-    // ==== LÓGICA DE ZOOM CARTA ====
-    function openZoom(el) {
-        const overlay = document.getElementById('modalZoom');
-        const clone = el.cloneNode(true);
-        clone.removeAttribute('onclick'); 
-        const zoomContent = document.getElementById('zoomContent');
-        zoomContent.innerHTML = "";
-        zoomContent.appendChild(clone);
-        overlay.classList.add('active');
-        apply3DEffect(); 
-    }
-    
-    // ==== GESTIÓN DE PERFIL DE USUARIO ====
-    // Nota: Asegúrate de que mockUser esté definido antes o cámbialo por datos de Firebase
-    function populateUserProfileData() {
-        if(typeof mockUser !== 'undefined') {
-            document.getElementById('headerPfp').src = mockUser.pfp;
-            document.getElementById('headerUsername').innerText = mockUser.username;
-            document.getElementById('supportUsername').innerText = mockUser.username;
-            document.getElementById('supportUserid').innerText = mockUser.userid;
-        }
-    }
-
-    const userHeaderWidget = document.getElementById('userHeaderWidget');
-    const profileDropdown = document.getElementById('profileDropdown');
-
-    if(userHeaderWidget) {
-        userHeaderWidget.addEventListener('click', (e) => {
-            e.stopPropagation();
-            profileDropdown.classList.toggle('active');
-        });
-    }
-
-    document.addEventListener('click', () => closeProfileDropdown());
-    
-    function closeProfileDropdown() { if(profileDropdown) profileDropdown.classList.remove('active'); }
+    function closeModalOnOverlay(e) { if(e.target.classList.contains('modal-overlay')) closeModal(); }
 
     function populateViewProfile() {
-        document.getElementById('viewPfp').src = mockUser.pfp;
-        document.getElementById('viewUsername').innerText = mockUser.username;
-        document.getElementById('viewUserid').innerText = mockUser.userid;
-        document.getElementById('statCards').innerText = mockUser.cards;
-        document.getElementById('statFriends').innerText = mockUser.friends;
-        document.getElementById('viewDesc').innerText = mockUser.desc;
-        
-        generateTags('viewHobbies', mockUser.hobbies);
-        generateTags('viewSongs', mockUser.songs);
-        generateTags('viewTastes', mockUser.tastes);
+        document.getElementById('viewPfp').src = currentUserData.pfp;
+        document.getElementById('viewUsername').innerText = currentUserData.username;
+        document.getElementById('viewUserid').innerText = "ID: " + currentUserData.userid;
+        document.getElementById('statCards').innerText = currentUserData.cards;
+        document.getElementById('statFriends').innerText = currentUserData.friends;
+        document.getElementById('viewDesc').innerText = currentUserData.desc;
+        renderTags('viewHobbies', currentUserData.hobbies);
+        renderTags('viewSongs', currentUserData.songs);
+        renderTags('viewTastes', currentUserData.tastes);
     }
 
-    function generateTags(containerId, commaString) {
-        const container = document.getElementById(containerId);
-        if(!container) return;
+    function renderTags(id, str) {
+        const container = document.getElementById(id);
         container.innerHTML = "";
-        if(!commaString) return;
-        const tags = commaString.split(',').map(s => s.trim()).filter(s => s);
-        tags.forEach(tagText => {
+        str.split(',').forEach(t => {
             const span = document.createElement('span');
             span.className = 'tag';
-            span.innerText = tagText;
+            span.innerText = t.trim();
             container.appendChild(span);
         });
     }
 
-    function populateEditProfileForm() {
-        document.getElementById('editPfpPreview').src = mockUser.pfp;
-        document.getElementById('editUsername').value = mockUser.username;
-        document.getElementById('editDesc').value = mockUser.desc;
-        document.getElementById('editHobbies').value = mockUser.hobbies;
-        document.getElementById('editSongs').value = mockUser.songs;
-        document.getElementById('editTastes').value = mockUser.tastes;
+    function populateEditForm() {
+        document.getElementById('editPfpPreview').src = currentUserData.pfp;
+        document.getElementById('editUsername').value = currentUserData.username;
+        document.getElementById('editDesc').value = currentUserData.desc;
+        document.getElementById('editHobbies').value = currentUserData.hobbies;
+        document.getElementById('editSongs').value = currentUserData.songs;
+        document.getElementById('editTastes').value = currentUserData.tastes;
     }
 
     function saveProfile() {
-        mockUser.username = document.getElementById('editUsername').value;
-        mockUser.desc = document.getElementById('editDesc').value;
-        mockUser.hobbies = document.getElementById('editHobbies').value;
-        mockUser.songs = document.getElementById('editSongs').value;
-        mockUser.tastes = document.getElementById('editTastes').value;
-        
-        populateUserProfileData();
-        alert("¡Perfil actualizado ARMY!");
+        currentUserData.username = document.getElementById('editUsername').value;
+        currentUserData.desc = document.getElementById('editDesc').value;
+        currentUserData.hobbies = document.getElementById('editHobbies').value;
+        currentUserData.songs = document.getElementById('editSongs').value;
+        currentUserData.tastes = document.getElementById('editTastes').value;
+        updateUIWithUserData();
         closeModal();
-        setTimeout(() => openModal('modalViewProfile'), 100);
+        alert("¡Perfil actualizado!");
     }
 
-    // GESTIÓN SOCIAL
-    function toggleSocialContent(contentType) {
-        closeFriendOptions(); 
+    // ==== OTROS (Social, Música, Soporte) ====
+    function toggleSocialContent(type) {
         document.querySelectorAll('.social-content-area').forEach(a => a.classList.remove('active'));
-        document.getElementById(`social-${contentType}`).classList.add('active');
+        document.getElementById(`social-${type}`).classList.add('active');
     }
 
-    let selectedFriendId = null;
-    let selectedFriendCard = null;
-    const optsMenu = document.getElementById('friendOptionsMenu');
-
-    function showFriendOptions(event, friendId, cardEl) {
-        event.stopPropagation();
-        closeFriendOptions(); 
-        
-        selectedFriendId = friendId;
-        selectedFriendCard = cardEl;
-        
+    let optsMenu = document.getElementById('friendOptionsMenu');
+    function showFriendOptions(e, id, card) {
+        e.stopPropagation();
         optsMenu.style.display = 'block';
-        const rect = cardEl.getBoundingClientRect();
-        optsMenu.style.top = `${rect.top + window.scrollY + 10}px`;
-        optsMenu.style.left = `${rect.right + window.scrollX - 160}px`; 
-    }
-
-    function closeFriendOptions() {
-        if(optsMenu) optsMenu.style.display = 'none';
-        selectedFriendId = null;
-        selectedFriendCard = null;
+        const rect = card.getBoundingClientRect();
+        optsMenu.style.top = `${rect.top + window.scrollY}px`;
+        optsMenu.style.left = `${rect.left + window.scrollX}px`;
     }
 
     function handleFriendAction(action) {
-        if(!selectedFriendId) return;
-        const friendName = selectedFriendCard.querySelector('h4').innerText;
-        switch(action) {
-            case 'message': alert(`Chat con ${friendName}`); break;
-            case 'delete': selectedFriendCard.remove(); updateFriendCountBadge(-1); break;
-        }
-        closeFriendOptions();
+        alert("Acción: " + action);
+        optsMenu.style.display = 'none';
     }
 
-    function updateFriendCountBadge(change) {
-        mockUser.friends += change;
-        const count = Math.max(0, mockUser.friends);
-        document.getElementById('friend-count-badge').innerText = count;
-        document.getElementById('statFriends').innerText = count;
+    function unblockUser(id) { document.getElementById(id).remove(); }
+
+    function handleFileSelect(e, num) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            document.getElementById(`preview${num}`).style.backgroundImage = `url(${event.target.result})`;
+            document.getElementById(`supportFile${num}`).classList.add('has-file');
+        };
+        reader.readAsDataURL(e.target.files[0]);
     }
 
-    // GESTIÓN BLOQUEADOS
-    function unblockUser(itemId) {
-        const el = document.getElementById(itemId);
-        if(el && confirm(`¿Desbloquear?`)) el.remove();
-    }
+    function submitSupport(e) { e.preventDefault(); alert("Ticket enviado ✨"); closeModal(); }
 
-    // ==== GESTIÓN SOPORTE ====
-    function handleFileSelect(event, inputNumber) {
-        const input = event.target;
-        const wrapper = document.getElementById(`supportFile${inputNumber}`);
-        const preview = document.getElementById(`preview${inputNumber}`);
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                preview.style.backgroundImage = `url(${e.target.result})`;
-                wrapper.classList.add('has-file');
-            }
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    function submitSupport(event) {
-        event.preventDefault();
-        alert("¡Ticket enviado!");
-        closeModal();
-    }
-
-    // ==== GESTIÓN MÚSICA ====
     const audio = document.getElementById('bg-music');
     let playing = false;
     function changeSong() {
         const s = document.getElementById('song-select');
-        if(s.value && audio) { audio.src = s.value; if(playing) audio.play(); }
+        if(s.value) { audio.src = s.value; if(playing) audio.play(); }
     }
     function toggleMusic() {
-        if(!audio || !audio.src) return;
-        if(playing) { audio.pause(); document.getElementById('play-btn').innerText = "▶ PLAY"; }
-        else { audio.play(); document.getElementById('play-btn').innerText = "⏸ PAUSE"; }
+        if(!audio.src) return alert("Elige una canción");
+        playing ? audio.pause() : audio.play();
+        document.getElementById('play-btn').innerText = playing ? "▶ PLAY" : "⏸ PAUSE";
         playing = !playing;
     }
+
+    // INICIO
+    window.addEventListener('load', () => {
+        updateSpinUI();
+        setTimeout(() => { document.getElementById('loader').style.display = 'none'; }, 1000);
+    });
+
+    document.getElementById('userHeaderWidget').onclick = (e) => {
+        e.stopPropagation();
+        document.getElementById('profileDropdown').classList.toggle('active');
+    };
+    document.addEventListener('click', () => document.getElementById('profileDropdown').classList.remove('active'));
 </script>
 </body>
 </html>
