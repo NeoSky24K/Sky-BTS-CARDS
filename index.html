@@ -710,397 +710,354 @@
     </div>
 
     <script type="module">
-	import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, ... } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-       
-        const firebaseConfig = {
-  apiKey: "AIzaSyBEHxoobhrHfE7AKJr3mWUomWzIy8ePpeo",
-  authDomain: "sky-bts-cards.firebaseapp.com",
-  projectId: "sky-bts-cards",
-  storageBucket: "sky-bts-cards.firebasestorage.app",
-  messagingSenderId: "370282588968",
-  appId: "1:370282588968:web:2502fdd9c6a85b8b183e1d",
-  measurementId: "G-9WPVGWG6XL"
-};
+    // 1. IMPORTS CORREGIDOS (Sin puntos suspensivos y con funciones necesarias)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-        // ==== LÓGICA DE LA RULETA ====
-        let currentRotation = 0;
-        let isSpinning = false;
-        const MAX_SPINS = 2;
+    // 2. CONFIGURACIÓN DE FIREBASE (Tus credenciales reales)
+    const firebaseConfig = {
+        apiKey: "AIzaSyBEHxoobhrHfE7AKJr3mWUomWzIy8ePpeo",
+        authDomain: "sky-bts-cards.firebaseapp.com",
+        projectId: "sky-bts-cards",
+        storageBucket: "sky-bts-cards.firebasestorage.app",
+        messagingSenderId: "370282588968",
+        appId: "1:370282588968:web:2502fdd9c6a85b8b183e1d",
+        measurementId: "G-9WPVGWG6XL"
+    };
 
-        function getSpinData() {
-            const data = JSON.parse(localStorage.getItem('neosky_spins')) || { count: 0, lastReset: Date.now() };
-            const now = Date.now();
-            if (now - data.lastReset > 86400000) {
-                return { count: 0, lastReset: now };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // ==== PUENTE PARA BOTONES HTML (Importante para que funcionen los onclick) ====
+    window.spin = spin;
+    window.showSec = showSec;
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.closeModalOnOverlay = closeModalOnOverlay;
+    window.openZoom = openZoom;
+    window.saveProfile = saveProfile;
+    window.toggleSocialContent = toggleSocialContent;
+    window.showFriendOptions = showFriendOptions;
+    window.handleFriendAction = handleFriendAction;
+    window.unblockUser = unblockUser;
+    window.handleFileSelect = handleFileSelect;
+    window.submitSupport = submitSupport;
+    window.changeSong = changeSong;
+    window.toggleMusic = toggleMusic;
+
+    // ==== LÓGICA DE LA RULETA ====
+    let currentRotation = 0;
+    let isSpinning = false;
+    const MAX_SPINS = 2;
+
+    function getSpinData() {
+        const data = JSON.parse(localStorage.getItem('neosky_spins')) || { count: 0, lastReset: Date.now() };
+        const now = Date.now();
+        if (now - data.lastReset > 86400000) {
+            return { count: 0, lastReset: now };
+        }
+        return data;
+    }
+
+    function saveSpinData(data) {
+        localStorage.setItem('neosky_spins', JSON.stringify(data));
+    }
+
+    function updateSpinUI() {
+        const spinData = getSpinData();
+        const spinsLeft = Math.max(0, MAX_SPINS - spinData.count);
+        const countEl = document.getElementById('spin-count');
+        if (countEl) countEl.innerText = spinsLeft;
+    }
+
+    function spin() {
+        if (isSpinning) return;
+
+        let spinData = getSpinData();
+        if (spinData.count >= MAX_SPINS) {
+            alert("¡Ya usaste tus 2 giros de hoy! Vuelve en 24 horas ARMY. ✨");
+            return;
+        }
+
+        const wheel = document.getElementById('wheel');
+        const resultDiv = document.getElementById('result');
+        const spinBtn = document.getElementById('spin-button');
+        
+        const prizes = [
+            "1 Card ❤️", "Giro Extra😎", "2 Cards👑", "Lo siento🥺",
+            "1 Card ❤️", "Giro Extra😎", "2 Cards👑", "Lo siento🥺"
+        ];
+        
+        isSpinning = true;
+        if (spinBtn) spinBtn.disabled = true;
+        if (resultDiv) resultDiv.innerText = "Girando...";
+
+        const prizeIndex = Math.floor(Math.random() * prizes.length);
+        const resultText = prizes[prizeIndex];
+
+        const targetAngle = (prizeIndex * 45) + 22.5;
+        currentRotation = currentRotation - (currentRotation % 360) + 1440 + targetAngle; 
+        
+        wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+        setTimeout(() => {
+            isSpinning = false;
+            if (spinBtn) spinBtn.disabled = false;
+            
+            spinData.count++;
+            saveSpinData(spinData);
+            updateSpinUI();
+            
+            if (resultDiv) {
+                resultDiv.innerText = "¡Resultado: " + resultText + "!";
             }
-            return data;
-        }
+        }, 5000); 
+    }
 
-        function saveSpinData(data) {
-            localStorage.setItem('neosky_spins', JSON.stringify(data));
-        }
-
-        function updateSpinUI() {
-            const spinData = getSpinData();
-            const spinsLeft = Math.max(0, MAX_SPINS - spinData.count);
-            const countEl = document.getElementById('spin-count');
-            if (countEl) countEl.innerText = spinsLeft;
-        }
-
-        function spin() {
-            if (isSpinning) return;
-
-            let spinData = getSpinData();
-            if (spinData.count >= MAX_SPINS) {
-                alert("¡Ya usaste tus 2 giros de hoy! Vuelve en 24 horas ARMY. ✨");
-                return;
-            }
-
-            const wheel = document.getElementById('wheel');
-            const resultDiv = document.getElementById('result');
-            const spinBtn = document.getElementById('spin-button');
-            
-            // EL ÚNICO CAMBIO: Este orden compensa el desfase visual de la rueda
-            const prizes = [
-                "1 Card ❤️",     
-                "Giro Extra😎",  
-                "2 Cards👑",     
-                "Lo siento🥺",   
-                "1 Card ❤️",     
-                "Giro Extra😎",  
-                "2 Cards👑",     
-                "Lo siento🥺"    
-            ];
-            
-            isSpinning = true;
-            if (spinBtn) spinBtn.disabled = true;
-            if (resultDiv) resultDiv.innerText = "Girando...";
-
-            const prizeIndex = Math.floor(Math.random() * prizes.length);
-            const resultText = prizes[prizeIndex];
-
-            // CÁLCULO DE PRECISIÓN CORREGIDO
-            const targetAngle = (prizeIndex * 45) + 22.5;
-            
-            // Mantiene la fluidez y asegura que caiga siempre en el lugar correcto
-            currentRotation = currentRotation - (currentRotation % 360) + 1440 + targetAngle; 
-            
-            wheel.style.transform = `rotate(${currentRotation}deg)`;
-
-            setTimeout(() => {
-                isSpinning = false;
-                if (spinBtn) spinBtn.disabled = false;
-                
-                spinData.count++;
-                saveSpinData(spinData);
-                updateSpinUI();
-                
-                if (resultDiv) {
-                    resultDiv.innerText = "¡Resultado: " + resultText + "!";
-                }
-            }, 5000); 
-        }
-
-        // ==== INICIALIZACIÓN Y LOADER ====
-        window.addEventListener('load', () => {
-            populateUserProfileData();
-            updateSpinUI(); // Actualizar contador al cargar la página
-            
-            setTimeout(() => {
-                const loader = document.getElementById('loader');
+    // ==== INICIALIZACIÓN Y LOADER ====
+    window.addEventListener('load', () => {
+        populateUserProfileData();
+        updateSpinUI(); 
+        
+        setTimeout(() => {
+            const loader = document.getElementById('loader');
+            if(loader) {
                 loader.style.opacity = '0';
                 setTimeout(() => loader.style.display = 'none', 800);
-            }, 2000); 
-            apply3DEffect();
-        });
+            }
+        }, 2000); 
+        apply3DEffect();
+    });
 
-        // ==== GESTIÓN DE PANELES Y NAVEGACIÓN ====
-        function showSec(id, btn) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            btn.classList.add('active');
-            closeFriendOptions(); 
-        }
+    // ==== GESTIÓN DE PANELES Y NAVEGACIÓN ====
+    function showSec(id, btn) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if(btn) btn.classList.add('active');
+        closeFriendOptions(); 
+    }
 
-        // ==== GESTIÓN DE MODALES ====
-        function openModal(modalId) {
-            closeProfileDropdown();
-            closeFriendOptions();
-            
-            const modal = document.getElementById(modalId);
+    // ==== GESTIÓN DE MODALES ====
+    function openModal(modalId) {
+        closeProfileDropdown();
+        closeFriendOptions();
+        
+        const modal = document.getElementById(modalId);
+        if(modal) {
             modal.classList.add('active');
-            
             if(modalId === 'modalViewProfile') populateViewProfile();
             if(modalId === 'modalEditProfile') populateEditProfileForm();
-
             apply3DEffect(); 
         }
+    }
 
-        function closeModal() {
-            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
-            document.getElementById('zoomContent').innerHTML = ""; 
+    function closeModal() {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        const zoomContent = document.getElementById('zoomContent');
+        if(zoomContent) zoomContent.innerHTML = ""; 
+    }
+
+    function closeModalOnOverlay(event) {
+        if (event.target.classList.contains('modal-overlay')) {
+            closeModal();
         }
+    }
 
-        function closeModalOnOverlay(event) {
-            if (event.target.classList.contains('modal-overlay')) {
-                closeModal();
-            }
-        }
+    // ==== EFECTO 3D DE CARTAS ====
+    function apply3DEffect() {
+        const wrappers = document.querySelectorAll('.card-wrapper');
+        wrappers.forEach(w => {
+            const card = w.querySelector('.card-main');
+            if(w.dataset.listenerAdded) return;
+            w.dataset.listenerAdded = true;
 
-        // ==== EFECTO 3D DE CARTAS ====
-        function apply3DEffect() {
-            const wrappers = document.querySelectorAll('.card-wrapper');
-            wrappers.forEach(w => {
-                const card = w.querySelector('.card-main');
-                if(w.dataset.listenerAdded) return;
-                w.dataset.listenerAdded = true;
-
-                w.addEventListener('mousemove', (e) => {
-                    const rect = w.getBoundingClientRect();
-                    const x = (e.clientX - rect.left) / rect.width - 0.5; 
-                    const y = (e.clientY - rect.top) / rect.height - 0.5; 
-                    
-                    card.style.transform = `rotateX(${y * -40}deg) rotateY(${x * 40}deg) scale(1.02)`;
-                });
-                
-                w.addEventListener('mouseleave', () => {
-                    card.style.transform = `rotateX(0deg) rotateY(0deg) scale(1)`;
-                });
+            w.addEventListener('mousemove', (e) => {
+                const rect = w.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width - 0.5; 
+                const y = (e.clientY - rect.top) / rect.height - 0.5; 
+                card.style.transform = `rotateX(${y * -40}deg) rotateY(${x * 40}deg) scale(1.02)`;
             });
-        }
+            
+            w.addEventListener('mouseleave', () => {
+                card.style.transform = `rotateX(0deg) rotateY(0deg) scale(1)`;
+            });
+        });
+    }
 
-        // ==== LÓGICA DE ZOOM CARTA ====
-        function openZoom(el) {
-            const overlay = document.getElementById('modalZoom');
-            const clone = el.cloneNode(true);
-            clone.removeAttribute('onclick'); 
-            document.getElementById('zoomContent').innerHTML = "";
-            document.getElementById('zoomContent').appendChild(clone);
-            overlay.classList.add('active');
-            apply3DEffect(); 
-        }
-        
-        // ==== GESTIÓN DE PERFIL DE USUARIO ====
-        function populateUserProfileData() {
+    // ==== LÓGICA DE ZOOM CARTA ====
+    function openZoom(el) {
+        const overlay = document.getElementById('modalZoom');
+        const clone = el.cloneNode(true);
+        clone.removeAttribute('onclick'); 
+        const zoomContent = document.getElementById('zoomContent');
+        zoomContent.innerHTML = "";
+        zoomContent.appendChild(clone);
+        overlay.classList.add('active');
+        apply3DEffect(); 
+    }
+    
+    // ==== GESTIÓN DE PERFIL DE USUARIO ====
+    // Nota: Asegúrate de que mockUser esté definido antes o cámbialo por datos de Firebase
+    function populateUserProfileData() {
+        if(typeof mockUser !== 'undefined') {
             document.getElementById('headerPfp').src = mockUser.pfp;
             document.getElementById('headerUsername').innerText = mockUser.username;
             document.getElementById('supportUsername').innerText = mockUser.username;
             document.getElementById('supportUserid').innerText = mockUser.userid;
         }
+    }
 
-        const userHeaderWidget = document.getElementById('userHeaderWidget');
-        const profileDropdown = document.getElementById('profileDropdown');
+    const userHeaderWidget = document.getElementById('userHeaderWidget');
+    const profileDropdown = document.getElementById('profileDropdown');
 
+    if(userHeaderWidget) {
         userHeaderWidget.addEventListener('click', (e) => {
             e.stopPropagation();
             profileDropdown.classList.toggle('active');
         });
+    }
 
-        document.addEventListener('click', () => closeProfileDropdown());
+    document.addEventListener('click', () => closeProfileDropdown());
+    
+    function closeProfileDropdown() { if(profileDropdown) profileDropdown.classList.remove('active'); }
+
+    function populateViewProfile() {
+        document.getElementById('viewPfp').src = mockUser.pfp;
+        document.getElementById('viewUsername').innerText = mockUser.username;
+        document.getElementById('viewUserid').innerText = mockUser.userid;
+        document.getElementById('statCards').innerText = mockUser.cards;
+        document.getElementById('statFriends').innerText = mockUser.friends;
+        document.getElementById('viewDesc').innerText = mockUser.desc;
         
-        function closeProfileDropdown() { profileDropdown.classList.remove('active'); }
+        generateTags('viewHobbies', mockUser.hobbies);
+        generateTags('viewSongs', mockUser.songs);
+        generateTags('viewTastes', mockUser.tastes);
+    }
 
-        function populateViewProfile() {
-            document.getElementById('viewPfp').src = mockUser.pfp;
-            document.getElementById('viewUsername').innerText = mockUser.username;
-            document.getElementById('viewUserid').innerText = mockUser.userid;
-            document.getElementById('statCards').innerText = mockUser.cards;
-            document.getElementById('statFriends').innerText = mockUser.friends;
-            document.getElementById('viewDesc').innerText = mockUser.desc;
-            
-            generateTags('viewHobbies', mockUser.hobbies);
-            generateTags('viewSongs', mockUser.songs);
-            generateTags('viewTastes', mockUser.tastes);
-        }
-
-        function generateTags(containerId, commaString) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = "";
-            if(!commaString) return;
-            const tags = commaString.split(',').map(s => s.trim()).filter(s => s);
-            tags.forEach(tagText => {
-                const span = document.createElement('span');
-                span.className = 'tag';
-                span.innerText = tagText;
-                container.appendChild(span);
-            });
-        }
-
-        function populateEditProfileForm() {
-            document.getElementById('editPfpPreview').src = mockUser.pfp;
-            document.getElementById('editUsername').value = mockUser.username;
-            document.getElementById('editDesc').value = mockUser.desc;
-            document.getElementById('editHobbies').value = mockUser.hobbies;
-            document.getElementById('editSongs').value = mockUser.songs;
-            document.getElementById('editTastes').value = mockUser.tastes;
-        }
-
-        function saveProfile() {
-            mockUser.username = document.getElementById('editUsername').value;
-            mockUser.desc = document.getElementById('editDesc').value;
-            mockUser.hobbies = document.getElementById('editHobbies').value;
-            mockUser.songs = document.getElementById('editSongs').value;
-            mockUser.tastes = document.getElementById('editTastes').value;
-            
-            populateUserProfileData();
-            
-            alert("¡Perfil actualizado ARMY!");
-            closeModal();
-            setTimeout(() => openModal('modalViewProfile'), 100);
-        }
-
-        // GESTIÓN SOCIAL
-        function toggleSocialContent(contentType) {
-            closeFriendOptions(); 
-            document.querySelectorAll('.social-content-area').forEach(a => a.classList.remove('active'));
-            document.getElementById(`social-${contentType}`).classList.add('active');
-        }
-
-        let selectedFriendId = null;
-        let selectedFriendCard = null;
-        const optsMenu = document.getElementById('friendOptionsMenu');
-
-        function showFriendOptions(event, friendId, cardEl) {
-            event.stopPropagation();
-            closeFriendOptions(); 
-            
-            selectedFriendId = friendId;
-            selectedFriendCard = cardEl;
-            
-            optsMenu.style.display = 'block';
-            
-            const rect = cardEl.getBoundingClientRect();
-            optsMenu.style.top = `${rect.top + window.scrollY + 10}px`;
-            optsMenu.style.left = `${rect.right + window.scrollX - 160}px`; 
-        }
-
-        document.addEventListener('click', (e) => {
-            if(!e.target.closest('.friend-options-menu') && !e.target.closest('.friend-card')) {
-                closeFriendOptions();
-            }
+    function generateTags(containerId, commaString) {
+        const container = document.getElementById(containerId);
+        if(!container) return;
+        container.innerHTML = "";
+        if(!commaString) return;
+        const tags = commaString.split(',').map(s => s.trim()).filter(s => s);
+        tags.forEach(tagText => {
+            const span = document.createElement('span');
+            span.className = 'tag';
+            span.innerText = tagText;
+            container.appendChild(span);
         });
+    }
 
-        function closeFriendOptions() {
-            optsMenu.style.display = 'none';
-            selectedFriendId = null;
-            selectedFriendCard = null;
+    function populateEditProfileForm() {
+        document.getElementById('editPfpPreview').src = mockUser.pfp;
+        document.getElementById('editUsername').value = mockUser.username;
+        document.getElementById('editDesc').value = mockUser.desc;
+        document.getElementById('editHobbies').value = mockUser.hobbies;
+        document.getElementById('editSongs').value = mockUser.songs;
+        document.getElementById('editTastes').value = mockUser.tastes;
+    }
+
+    function saveProfile() {
+        mockUser.username = document.getElementById('editUsername').value;
+        mockUser.desc = document.getElementById('editDesc').value;
+        mockUser.hobbies = document.getElementById('editHobbies').value;
+        mockUser.songs = document.getElementById('editSongs').value;
+        mockUser.tastes = document.getElementById('editTastes').value;
+        
+        populateUserProfileData();
+        alert("¡Perfil actualizado ARMY!");
+        closeModal();
+        setTimeout(() => openModal('modalViewProfile'), 100);
+    }
+
+    // GESTIÓN SOCIAL
+    function toggleSocialContent(contentType) {
+        closeFriendOptions(); 
+        document.querySelectorAll('.social-content-area').forEach(a => a.classList.remove('active'));
+        document.getElementById(`social-${contentType}`).classList.add('active');
+    }
+
+    let selectedFriendId = null;
+    let selectedFriendCard = null;
+    const optsMenu = document.getElementById('friendOptionsMenu');
+
+    function showFriendOptions(event, friendId, cardEl) {
+        event.stopPropagation();
+        closeFriendOptions(); 
+        
+        selectedFriendId = friendId;
+        selectedFriendCard = cardEl;
+        
+        optsMenu.style.display = 'block';
+        const rect = cardEl.getBoundingClientRect();
+        optsMenu.style.top = `${rect.top + window.scrollY + 10}px`;
+        optsMenu.style.left = `${rect.right + window.scrollX - 160}px`; 
+    }
+
+    function closeFriendOptions() {
+        if(optsMenu) optsMenu.style.display = 'none';
+        selectedFriendId = null;
+        selectedFriendCard = null;
+    }
+
+    function handleFriendAction(action) {
+        if(!selectedFriendId) return;
+        const friendName = selectedFriendCard.querySelector('h4').innerText;
+        switch(action) {
+            case 'message': alert(`Chat con ${friendName}`); break;
+            case 'delete': selectedFriendCard.remove(); updateFriendCountBadge(-1); break;
         }
+        closeFriendOptions();
+    }
 
-        function handleFriendAction(action) {
-            if(!selectedFriendId) return;
-            const friendName = selectedFriendCard.querySelector('h4').innerText;
+    function updateFriendCountBadge(change) {
+        mockUser.friends += change;
+        const count = Math.max(0, mockUser.friends);
+        document.getElementById('friend-count-badge').innerText = count;
+        document.getElementById('statFriends').innerText = count;
+    }
 
-            switch(action) {
-                case 'message':
-                    alert(`Abriendo chat privado con ${friendName}...`);
-                    break;
-                case 'delete':
-                    if(confirm(`¿Estás seguro de eliminar a ${friendName} de tus amigos borahae?`)) {
-                        selectedFriendCard.remove();
-                        alert(`${friendName} eliminado.`);
-                        updateFriendCountBadge(-1);
-                    }
-                    break;
-                case 'block':
-                    if(confirm(`¿Seguro que quieres bloquear a ${friendName}? No podrá contactarte.`)) {
-                        selectedFriendCard.remove();
-                        addFriendToBlockedList(friendName, selectedFriendCard.querySelector('.friend-pfp').src);
-                        alert(`${friendName} bloqueado.`);
-                        updateFriendCountBadge(-1);
-                    }
-                    break;
+    // GESTIÓN BLOQUEADOS
+    function unblockUser(itemId) {
+        const el = document.getElementById(itemId);
+        if(el && confirm(`¿Desbloquear?`)) el.remove();
+    }
+
+    // ==== GESTIÓN SOPORTE ====
+    function handleFileSelect(event, inputNumber) {
+        const input = event.target;
+        const wrapper = document.getElementById(`supportFile${inputNumber}`);
+        const preview = document.getElementById(`preview${inputNumber}`);
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.style.backgroundImage = `url(${e.target.result})`;
+                wrapper.classList.add('has-file');
             }
-            closeFriendOptions();
+            reader.readAsDataURL(input.files[0]);
         }
+    }
 
-        function updateFriendCountBadge(change) {
-            mockUser.friends += change;
-            const count = Math.max(0, mockUser.friends);
-            document.getElementById('friend-count-badge').innerText = count;
-            document.getElementById('statFriends').innerText = count;
-        }
+    function submitSupport(event) {
+        event.preventDefault();
+        alert("¡Ticket enviado!");
+        closeModal();
+    }
 
-        // GESTIÓN BLOQUEADOS
-        const blockedContainer = document.getElementById('blockedListContainer');
-        let blockedCount = 2; 
-
-        function addFriendToBlockedList(name, pfp) {
-            blockedCount++;
-            const id = `blocked-new${blockedCount}`;
-            const div = document.createElement('div');
-            div.className = 'blocked-list-item';
-            div.id = id;
-            div.innerHTML = `
-                <div class="blocked-user-info">
-                    <img src="${pfp}" alt="PFP" class="blocked-pfp">
-                    <span class="blocked-name">${name}</span>
-                </div>
-                <button class="btn-unblock" onclick="unblockUser('${id}')">Desbloquear</button>
-            `;
-            blockedContainer.appendChild(div);
-        }
-
-        function unblockUser(itemId) {
-            const el = document.getElementById(itemId);
-            const name = el.querySelector('.blocked-name').innerText;
-            if(confirm(`¿Desbloquear a ${name}?`)) {
-                el.remove();
-                alert(`${name} desbloqueado.`);
-            }
-        }
-
-        // ==== GESTIÓN SOPORTE ====
-        function handleFileSelect(event, inputNumber) {
-            const input = event.target;
-            const wrapper = document.getElementById(`supportFile${inputNumber}`);
-            const preview = document.getElementById(`preview${inputNumber}`);
-            
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                
-                if(file.size > 5 * 1024 * 1024) {
-                    alert(`Imagen demasiado grande. Máx 5MB.`);
-                    input.value = "";
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.style.backgroundImage = `url(${e.target.result})`;
-                    wrapper.classList.add('has-file');
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function submitSupport(event) {
-            event.preventDefault();
-            alert("¡Ticket borahae enviado! Soporte revisará tu caso pronto.");
-            closeModal();
-            document.getElementById('supportForm').reset();
-            document.querySelectorAll('.file-input-wrapper').forEach(w => {
-                w.classList.remove('has-file');
-                w.querySelector('.file-preview').style.backgroundImage = "";
-            });
-        }
-
-        // ==== GESTIÓN MÚSICA ====
-        const audio = document.getElementById('bg-music');
-        let playing = false;
-        function changeSong() {
-            const s = document.getElementById('song-select');
-            if(s.value) { audio.src = s.value; if(playing) audio.play(); }
-        }
-        function toggleMusic() {
-            if(!audio.src) return alert("Selecciona una canción primero ARMY.");
-            if(playing) { audio.pause(); document.getElementById('play-btn').innerText = "▶ PLAY"; }
-            else { audio.play().catch(() => alert("Agrega links reales .mp3 para que funcione.")); document.getElementById('play-btn').innerText = "⏸ PAUSE"; }
-            playing = !playing;
-        }
-    </script>
+    // ==== GESTIÓN MÚSICA ====
+    const audio = document.getElementById('bg-music');
+    let playing = false;
+    function changeSong() {
+        const s = document.getElementById('song-select');
+        if(s.value && audio) { audio.src = s.value; if(playing) audio.play(); }
+    }
+    function toggleMusic() {
+        if(!audio || !audio.src) return;
+        if(playing) { audio.pause(); document.getElementById('play-btn').innerText = "▶ PLAY"; }
+        else { audio.play(); document.getElementById('play-btn').innerText = "⏸ PAUSE"; }
+        playing = !playing;
+    }
+</script>
 </body>
 </html>
