@@ -309,6 +309,31 @@
             background-color: #1a0a2e !important;
             color: white !important;
         }
+        .auth-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle, #1a0b2e 0%, #05010d 100%);
+    display: flex; align-items: center; justify-content: center; z-index: 10000;
+}
+.auth-card {
+    background: rgba(255, 255, 255, 0.05); padding: 40px; border-radius: 20px;
+    backdrop-filter: blur(10px); border: 1px solid rgba(163, 106, 255, 0.3);
+    text-align: center; width: 90%; max-width: 400px; color: white;
+}
+.auth-logo { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 20px; border: 2px solid #a36aff; }
+.auth-inputs input {
+    width: 100%; padding: 12px; margin: 10px 0; background: rgba(0,0,0,0.3);
+    border: 1px solid #444; border-radius: 8px; color: white; outline: none;
+}
+.auth-buttons button, .btn-google, .btn-anon {
+    width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px;
+    cursor: pointer; font-weight: bold; transition: 0.3s;
+}
+.btn-primary { background: #a36aff; color: white; }
+.btn-secondary { background: transparent; color: #a36aff; border: 1px solid #a36aff; }
+.btn-google { background: white; color: #444; }
+.btn-anon { background: rgba(255,255,255,0.1); color: white; }
+.divider { margin: 20px 0; border-bottom: 1px solid #444; position: relative; }
+.divider span { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #0b0514; padding: 0 10px; font-size: 12px; color: #888; }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -322,6 +347,29 @@
     <div class="bg-animated"></div>
 
     <header>
+<div id="auth-container" class="auth-overlay">
+    <div class="auth-card">
+        <img src="https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg" class="auth-logo" alt="NeoSky">
+        <h2>Bienvenido a NeoSky</h2>
+        <p>Inicia sesión para guardar tu colección en la nube</p>
+        
+        <div class="auth-inputs">
+            <input type="email" id="login-email" placeholder="Correo electrónico">
+            <input type="password" id="login-password" placeholder="Contraseña">
+        </div>
+
+        <div class="auth-buttons">
+            <button onclick="handleAuth('login')" class="btn-primary">Entrar</button>
+            <button onclick="handleAuth('register')" class="btn-secondary">Registrarme</button>
+        </div>
+
+        <div class="divider"><span>O entra con</span></div>
+
+        <div class="social-auth">
+            <button onclick="handleAuth('google')" class="btn-google">Continuar con Google</button>
+            <button onclick="handleAuth('anon')" class="btn-anon">Entrar como Invitado</button>
+        </div>
+        
         <div class="header-left">
             <h1>SKY BTS CARDS</h1>
         </div>
@@ -711,7 +759,16 @@
 
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { 
+        getAuth, 
+        onAuthStateChanged, 
+        signInWithEmailAndPassword, 
+        createUserWithEmailAndPassword, 
+        signInWithPopup, 
+        GoogleAuthProvider, 
+        signInAnonymously, 
+        signOut 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBEHxoobhrHfE7AKJr3mWUomWzIy8ePpeo",
@@ -725,47 +782,62 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const googleProvider = new GoogleAuthProvider();
 
-    // --- LÓGICA DE ACCESO SEGURO ---
+    // --- LÓGICA DE AUTENTICACIÓN ---
+    window.handleAuth = async (type) => {
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-password').value;
+
+        try {
+            if (type === 'login') {
+                if (!email || !pass) return alert("Por favor rellena los campos.");
+                await signInWithEmailAndPassword(auth, email, pass);
+            } 
+            else if (type === 'register') {
+                if (!email || !pass) return alert("Por favor rellena los campos.");
+                await createUserWithEmailAndPassword(auth, email, pass);
+                alert("¡Cuenta creada con éxito! Bienvenido.");
+            } 
+            else if (type === 'google') {
+                await signInWithPopup(auth, googleProvider);
+            } 
+            else if (type === 'anon') {
+                await signInAnonymously(auth);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error: " + error.message);
+        }
+    };
+
+    // --- OBSERVADOR DE ESTADO DE SESIÓN ---
     onAuthStateChanged(auth, (user) => {
+        const authScreen = document.getElementById('auth-container');
         const loader = document.getElementById('loader');
+
         if (user) {
-            // USUARIO AUTENTICADO: Mostramos la app
-            console.log("Bienvenido ARMY:", user.email);
+            // USUARIO ADMITIDO
+            if(authScreen) authScreen.style.display = 'none';
             document.querySelector('main').style.display = 'block';
             document.querySelector('header').style.display = 'flex';
             document.querySelector('nav').style.display = 'flex';
             
-            // Actualizar datos del header con Firebase
-            document.getElementById('headerUsername').innerText = user.displayName || "ARMY User";
+            // Actualizar interfaz con datos de Firebase
+            document.getElementById('headerUsername').innerText = user.isAnonymous ? "Invitado" : (user.displayName || user.email.split('@')[0]);
             document.getElementById('headerPfp').src = user.photoURL || "https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg";
             
             if(loader) loader.style.display = 'none';
         } else {
-            // NO HAY SESIÓN: Mostramos mensaje de login o invitamos a entrar
-            console.log("Sesión cerrada");
-            // Ocultamos la interfaz para que no vean las cartas sin permiso
+            // SIN SESIÓN ACTIVA
+            if(authScreen) authScreen.style.display = 'flex';
             document.querySelector('main').style.display = 'none';
             document.querySelector('header').style.display = 'none';
             document.querySelector('nav').style.display = 'none';
-            
-            // Forzamos el login (puedes crear un modal de login aquí)
-            const email = prompt("Ingresa tu correo para entrar a NeoSky:");
-            const pass = prompt("Contraseña:");
-            
-            if(email && pass) {
-                signInWithEmailAndPassword(auth, email, pass).catch(err => {
-                    alert("Error al entrar: " + err.message);
-                    location.reload(); // Reintenta
-                });
-            } else {
-                alert("Debes iniciar sesión para ver tu colección.");
-                // Opcional: entrarComoInvitado();
-            }
         }
     });
 
-    // --- EXPOSICIÓN DE FUNCIONES (Para tus botones onclick) ---
+    // --- EXPOSICIÓN DE FUNCIONES GLOBALES ---
     window.spin = spin;
     window.showSec = showSec;
     window.openModal = openModal;
@@ -782,7 +854,7 @@
     window.toggleMusic = toggleMusic;
     window.logout = () => signOut(auth).then(() => location.reload());
 
-    // ==== LÓGICA DE LA RULETA (Con persistencia local) ====
+    // ==== LÓGICA DE LA RULETA ====
     let currentRotation = 0;
     let isSpinning = false;
     const MAX_SPINS = 2;
@@ -897,11 +969,15 @@
     // --- INICIALIZACIÓN ---
     window.addEventListener('load', () => {
         updateSpinUI();
-        document.getElementById('userHeaderWidget').onclick = (e) => {
-            e.stopPropagation();
-            document.getElementById('profileDropdown').classList.toggle('active');
-        };
+        const widget = document.getElementById('userHeaderWidget');
+        if(widget) {
+            widget.onclick = (e) => {
+                e.stopPropagation();
+                document.getElementById('profileDropdown').classList.toggle('active');
+            };
+        }
     });
+
     document.addEventListener('click', () => {
         const dd = document.getElementById('profileDropdown');
         if(dd) dd.classList.remove('active');
