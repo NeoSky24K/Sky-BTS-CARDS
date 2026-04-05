@@ -784,20 +784,20 @@
     const auth = getAuth(app);
     const googleProvider = new GoogleAuthProvider();
 
-    // --- LÓGICA DE AUTENTICACIÓN ---
+    // --- LÓGICA DE AUTENTICACIÓN (Conectada a tu HTML) ---
     window.handleAuth = async (type) => {
         const email = document.getElementById('login-email').value;
         const pass = document.getElementById('login-password').value;
 
         try {
             if (type === 'login') {
-                if (!email || !pass) return alert("Por favor rellena los campos.");
+                if (!email || !pass) return alert("Por favor, ingresa tus datos.");
                 await signInWithEmailAndPassword(auth, email, pass);
             } 
             else if (type === 'register') {
-                if (!email || !pass) return alert("Por favor rellena los campos.");
+                if (!email || !pass) return alert("Ingresa un correo y clave para registrarte.");
                 await createUserWithEmailAndPassword(auth, email, pass);
-                alert("¡Cuenta creada con éxito! Bienvenido.");
+                alert("¡Cuenta NeoSky creada! Bienvenido.");
             } 
             else if (type === 'google') {
                 await signInWithPopup(auth, googleProvider);
@@ -806,38 +806,44 @@
                 await signInAnonymously(auth);
             }
         } catch (error) {
-            console.error(error);
-            alert("Error: " + error.message);
+            console.error("Error de Auth:", error.code);
+            // Traducción amigable de errores comunes
+            if (error.code === 'auth/invalid-credential') alert("Correo o contraseña incorrectos.");
+            else if (error.code === 'auth/email-already-in-use') alert("Este correo ya tiene una cuenta.");
+            else alert("Error: " + error.message);
         }
     };
 
-    // --- OBSERVADOR DE ESTADO DE SESIÓN ---
+    // --- EL OBSERVADOR (Controla qué se ve y qué no) ---
     onAuthStateChanged(auth, (user) => {
         const authScreen = document.getElementById('auth-container');
-        const loader = document.getElementById('loader');
+        const mainApp = document.querySelector('main');
+        const header = document.querySelector('header');
+        const nav = document.querySelector('nav');
 
         if (user) {
-            // USUARIO ADMITIDO
+            // SI HAY USUARIO: Ocultar login y mostrar la App
             if(authScreen) authScreen.style.display = 'none';
-            document.querySelector('main').style.display = 'block';
-            document.querySelector('header').style.display = 'flex';
-            document.querySelector('nav').style.display = 'flex';
+            if(mainApp) mainApp.style.display = 'block';
+            if(header) header.style.display = 'flex';
+            if(nav) nav.style.display = 'flex';
             
-            // Actualizar interfaz con datos de Firebase
+            // Actualizar interfaz
             document.getElementById('headerUsername').innerText = user.isAnonymous ? "Invitado" : (user.displayName || user.email.split('@')[0]);
             document.getElementById('headerPfp').src = user.photoURL || "https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg";
             
+            const loader = document.getElementById('loader');
             if(loader) loader.style.display = 'none';
         } else {
-            // SIN SESIÓN ACTIVA
+            // SI NO HAY USUARIO: Mostrar solo el Login profesional
             if(authScreen) authScreen.style.display = 'flex';
-            document.querySelector('main').style.display = 'none';
-            document.querySelector('header').style.display = 'none';
-            document.querySelector('nav').style.display = 'none';
+            if(mainApp) mainApp.style.display = 'none';
+            if(header) header.style.display = 'none';
+            if(nav) nav.style.display = 'none';
         }
     });
 
-    // --- EXPOSICIÓN DE FUNCIONES GLOBALES ---
+    // --- FUNCIONES GLOBALES ---
     window.spin = spin;
     window.showSec = showSec;
     window.openModal = openModal;
@@ -929,17 +935,23 @@
     function showFriendOptions(e, id, card) {
         e.stopPropagation();
         const menu = document.getElementById('friendOptionsMenu');
-        menu.style.display = 'block';
-        menu.style.top = `${e.pageY}px`;
-        menu.style.left = `${e.pageX - 150}px`;
+        if(menu) {
+            menu.style.display = 'block';
+            menu.style.top = `${e.pageY}px`;
+            menu.style.left = `${e.pageX - 150}px`;
+        }
     }
 
     function handleFriendAction(action) {
         alert("Acción realizada: " + action);
-        document.getElementById('friendOptionsMenu').style.display = 'none';
+        const menu = document.getElementById('friendOptionsMenu');
+        if(menu) menu.style.display = 'none';
     }
 
-    function unblockUser(id) { document.getElementById(id).remove(); }
+    function unblockUser(id) { 
+        const el = document.getElementById(id);
+        if(el) el.remove(); 
+    }
 
     function handleFileSelect(e, num) {
         const reader = new FileReader();
@@ -957,12 +969,13 @@
     let playing = false;
     function changeSong() {
         const s = document.getElementById('song-select');
-        if(s.value) { audio.src = s.value; if(playing) audio.play(); }
+        if(s && s.value) { audio.src = s.value; if(playing) audio.play(); }
     }
     function toggleMusic() {
         if(!audio.src) return alert("Elige una canción");
         playing ? audio.pause() : audio.play();
-        document.getElementById('play-btn').innerText = playing ? "▶ PLAY" : "⏸ PAUSE";
+        const btn = document.getElementById('play-btn');
+        if(btn) btn.innerText = playing ? "▶ PLAY" : "⏸ PAUSE";
         playing = !playing;
     }
 
