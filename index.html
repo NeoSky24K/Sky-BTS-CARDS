@@ -709,20 +709,22 @@
         </div>
     </div>
 
-    <script>
-        // ==== MOCK DATA (DATOS SIMULADOS LOCALMENTE) ====
-        const mockUser = {
-            username: "NeoSky",
-            userid: "#RM94N",
-            pfp: "https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg",
-            cards: 3,
-            friends: 3,
-            desc: "RM biased. Amante de la lectura y el arte. Namjooning is a lifestyle. 🐨💙🌿",
-            hobbies: "Lectura, Museos, Plantas, Bicicleta",
-            songs: "Wild Flower, Trivia: Love, Spring Day, Mikrokosmos",
-            tastes: "Café, Invierno, Arte Abstracto"
-        };
+    <script type="module">
+	import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, ... } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+       
+        const firebaseConfig = {
+  apiKey: "AIzaSyBEHxoobhrHfE7AKJr3mWUomWzIy8ePpeo",
+  authDomain: "sky-bts-cards.firebaseapp.com",
+  projectId: "sky-bts-cards",
+  storageBucket: "sky-bts-cards.firebasestorage.app",
+  messagingSenderId: "370282588968",
+  appId: "1:370282588968:web:2502fdd9c6a85b8b183e1d",
+  measurementId: "G-9WPVGWG6XL"
+};
 
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
         // ==== LÓGICA DE LA RULETA ====
         let currentRotation = 0;
         let isSpinning = false;
