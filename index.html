@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEOSKY BTS CARDS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* === CONFIGURACIÓN BASE Y VARIABLES === */
+        :root {
+            --bts-purple: #8A2BE2;
+            --bts-light-purple: #DDA0DD;
+            --bts-dark: #0a0512;
+            --bts-dark-panel: rgba(20, 10, 30, 0.95);
+            --bts-pink: #FF69B4;
+            --gold: #ffd700;
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+            --transition: all 0.3s ease;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: var(--bts-dark); color: var(--text-main); overflow-x: hidden; min-height: 100vh; }
+        ul { list-style: none; }
+
+        /* === LOADER RESTAURADO (CORAZÓN + TEXTO) === */
+        #loader {
+            position: fixed; inset: 0; background: var(--bts-dark);
+            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000;
+            transition: opacity 0.8s ease;
+        }
+        .heart-loader { font-size: 5rem; animation: pulse 0.8s infinite alternate; filter: drop-shadow(0 0 15px var(--bts-purple)); }
+        .loader-text { margin-top: 20px; letter-spacing: 5px; font-weight: bold; color: var(--bts-light-purple); animation: fadeText 1.5s infinite; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.3); opacity: 0.7; } }
+        @keyframes fadeText { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        /* === FONDO ANIMADO === */
+        .bg-animated {
+            position: fixed; inset: 0; z-index: -1;
+            background: linear-gradient(125deg, #0a0512, #2e1052, #0a0512, #5e179e);
+            background-size: 400% 400%; animation: gradientMove 15s ease infinite;
+        }
+        @keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        /* === HEADER MEJORADO CON PERFIL === */
+        header {
+            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(15px);
+            padding: 10px 5%; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--bts-purple); position: sticky; top: 0; z-index: 1000;
+        }
+        .header-left h1 { color: var(--text-main); font-size: 1.5rem; letter-spacing: 2px; }
+        
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        
+        /* Controles de música */
+        .music-player { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 5px 10px; border-radius: 20px;}
+        select { background: transparent; color: white; border: none; padding: 5px; border-radius: 5px; cursor: pointer; font-size: 0.8rem;}
+        .play-btn { background: var(--bts-purple); border: none; color: white; padding: 5px 10px; border-radius: 15px; cursor: pointer; font-size: 0.8rem; font-weight: bold;}
+
+        /* Widget de Perfil Usuario */
+        .user-profile-header {
+            display: flex; align-items: center; gap: 10px; cursor: pointer;
+            position: relative; padding: 5px 15px; border-radius: 20px; transition: var(--transition);
+        }
+        .user-profile-header:hover { background: rgba(255,255,255,0.1); }
+        .pfp-header { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--bts-pink); object-fit: cover; }
+        .username-header { font-weight: 600; font-size: 0.9rem; }
+        
+        /* Dropdown Perfil */
+        .profile-dropdown {
+            position: absolute; top: 100%; right: 0; width: 220px;
+            background: var(--bts-dark-panel); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; margin-top: 10px; display: none; overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100;
+        }
+        .profile-dropdown.active { display: block; animation: slideDown 0.3s ease; }
+        .profile-dropdown ul li {
+            padding: 12px 20px; cursor: pointer; transition: var(--transition);
+            font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 10px;
+        }
+        .profile-dropdown ul li:hover { background: rgba(138, 43, 226, 0.2); color: var(--bts-pink); }
+        .profile-dropdown ul li:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* === NAVEGACIÓN PRINCIPAL === */
+        nav { display: flex; gap: 10px; justify-content: center; padding: 15px; background: rgba(0,0,0,0.3); position: sticky; top: 62px; z-index: 999; }
+        nav button {
+            background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--bts-purple);
+            padding: 8px 20px; border-radius: 25px; cursor: pointer; transition: var(--transition);
+            font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;
+        }
+        nav button.active, nav button:hover { background: var(--bts-purple); box-shadow: 0 0 15px var(--bts-purple); }
+
+        /* === SECCIONES PRINCIPALES === */
+        .section { display: none; padding: 40px 5%; text-align: center; min-height: 80vh; }
+        .section.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .section-title { font-size: 2rem; margin-bottom: 10px; color: var(--bts-light-purple); }
+        .section-subtitle { color: var(--text-muted); margin-bottom: 30px; font-size: 0.9rem; }
+
+        /* === COLECCIÓN (ESPACIADO ARREGLADO) === */
+        .card-grid { 
+            display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; 
+            max-width: 1200px; margin: 0 auto; padding: 20px; 
+        }
+        .card-wrapper { width: 220px; height: 320px; perspective: 1000px; cursor: pointer; position: relative; }
+        .card-main { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.1s ease-out; }
+        .card-bg { position: absolute; inset: 0; border-radius: 15px; background-size: cover; background-position: center; border: 3px solid var(--bts-purple); overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .card-character { position: absolute; bottom: 0; left: 50%; width: 97%; transform: translateX(-50%) translateZ(40px); transition: transform 0.3s ease; pointer-events: none; }
+        .rarity-legendary .card-bg { border-color: var(--gold); box-shadow: 0 0 20px var(--gold); }
+        .card-wrapper:hover .card-character { transform: translateX(-50%) translateZ(80px) scale(1.05); }
+
+        /* === RULETA AMPLIADA Y REPETIBLE === */
+        .wheel-container {
+            position: relative; width: 350px; height: 350px; margin: 30px auto;
+            border: 8px solid var(--bts-purple); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            background: rgba(255,255,255,0.05); overflow: hidden;
+            box-shadow: 0 0 30px rgba(138, 43, 226, 0.5);
+        }
+        .wheel-indicator {
+            position: absolute; top: -15px; width: 0; height: 0;
+            border-left: 20px solid transparent; border-right: 20px solid transparent;
+            border-top: 40px solid var(--bts-pink); z-index: 10; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+        }
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            transition: transform 5s cubic-bezier(0.15, 0, 0.1, 1);
+            background-image: url('ruleta.png'); /* ASEGÚRATE QUE EL NOMBRE DE TU IMAGEN SEA CORRECTO AQUÍ */
+            background-size: cover;
+            background-position: center;
+        }
+        .result-display { margin-top: 20px; font-size: 1.3rem; font-weight: bold; color: var(--bts-pink); min-height: 2rem; text-shadow: 0 0 10px var(--bts-pink); }
+
+        /* === APARTADO SOCIAL MEJORADO === */
+        .social-actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
+        .social-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;
+            padding: 12px 25px; border-radius: 10px; cursor: pointer; transition: var(--transition);
+            font-weight: 600; display: flex; align-items: center; gap: 10px; font-size: 0.9rem;
+        }
+        .social-btn:hover { background: rgba(138, 43, 226, 0.3); border-color: var(--bts-purple); transform: translateY(-2px); }
+        .social-btn i { color: var(--bts-pink); }
+
+        /* Contenedor dinámico social */
+        .social-content-area { max-width: 800px; margin: 0 auto; display: none; text-align: left; }
+        .social-content-area.active { display: block; animation: fadeIn 0.3s ease; }
+        
+        /* Lista de Amigos */
+        .friends-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+        .friend-card {
+            background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px;
+            display: flex; align-items: center; gap: 15px; transition: var(--transition);
+            border: 1px solid transparent; position: relative; cursor: pointer;
+        }
+        .friend-card:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); }
+        .friend-pfp { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--bts-purple); object-fit: cover; }
+        .friend-info h4 { font-size: 1rem; margin-bottom: 2px; }
+        .friend-info p { font-size: 0.8rem; color: var(--text-muted); }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; position: absolute; top: 15px; right: 15px; }
+        .status-online { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+        .status-offline { background: #555; }
+
+        /* Opciones de Amigo (Context Menu Simulado) */
+        .friend-options-menu {
+            position: absolute; background: var(--bts-dark-panel); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; overflow: hidden; z-index: 10; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            width: 150px;
+        }
+        .friend-options-menu ul li {
+            padding: 10px 15px; font-size: 0.8rem; transition: var(--transition); color: var(--text-main);
+        }
+        .friend-options-menu ul li:hover { background: rgba(255,255,255,0.1); color: var(--bts-pink); }
+        .opts-msg { color: #fff; }
+        .opts-del { color: #ff4444; }
+        .opts-block { color: #ffae00; }
+
+        /* === ESTILOS GENERALES PANELES Y BOTONES === */
+        .panel { background: rgba(255,255,255,0.07); padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); max-width: 500px; margin: 0 auto; backdrop-filter: blur(10px); text-align: left;}
+        .panel h3 { color: var(--bts-light-purple); margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; }
+        input[type="text"], input[type="password"], textarea, select.form-input {
+            width: 100%; padding: 12px; border-radius: 10px; border: none; background: rgba(0,0,0,0.5); color: white; outline: 1px solid transparent; transition: var(--transition);
+        }
+        input:focus, textarea:focus { outline-color: var(--bts-purple); background: rgba(0,0,0,0.7); }
+        textarea { resize: vertical; min-height: 100px; font-size: 0.9rem;}
+        
+        .btn-action { 
+            background: linear-gradient(45deg, var(--bts-purple), var(--bts-pink)); 
+            color: white; border: none; padding: 12px 20px; border-radius: 10px; 
+            cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; 
+            text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem;
+            transition: var(--transition);
+        }
+        .btn-action:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 5px 15px rgba(255, 105, 180, 0.3); }
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.8rem;}
+        .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+
+        /* === MODALES (ZOOM, PERFIL, SOPORTE, ETC) === */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+            padding: 20px; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        
+        .modal-content {
+            background: var(--bts-dark-panel); border: 2px solid var(--bts-purple);
+            border-radius: 20px; padding: 30px; max-width: 600px; width: 100%;
+            max-height: 90vh; overflow-y: auto; position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            animation: modalPop 0.3s ease;
+        }
+        @keyframes modalPop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 2rem; color: var(--text-muted); cursor: pointer; transition: var(--transition); z-index: 10; }
+        .close-modal:hover { color: var(--bts-pink); }
+        
+        /* Estilos específicos modales */
+        .modal-header { margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .modal-title { color: var(--bts-light-purple); font-size: 1.5rem; }
+
+        /* Perfil Modal */
+        .profile-v-header { display: flex; align-items: center; gap: 20px; margin-bottom: 25px; }
+        .profile-v-pfp { width: 80px; height: 80px; border-radius: 50%; border: 4px solid var(--bts-pink); object-fit: cover; }
+        .profile-v-info h2 { font-size: 1.8rem; color: white; }
+        .profile-v-info p { color: var(--bts-pink); font-size: 0.9rem; font-weight: bold; }
+        
+        .profile-stats { display: flex; gap: 15px; margin-bottom: 25px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;}
+        .stat-item { flex: 1; text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: var(--bts-light-purple); }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        .profile-details-section { margin-bottom: 20px; }
+        .details-title { font-size: 0.8rem; color: var(--bts-pink); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; font-weight: bold;}
+        .details-content { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; font-size: 0.9rem; color: #ddd; }
+        .tags-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;}
+        .tag { background: rgba(138, 43, 226, 0.3); color: var(--bts-light-purple); padding: 4px 10px; border-radius: 15px; font-size: 0.8rem; }
+
+        /* Editar Perfil Modal */
+        .edit-pfp-container { text-align: center; margin-bottom: 20px; position: relative; display: inline-block; left: 50%; transform: translateX(-50%);}
+        .edit-pfp-preview { width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--bts-pink); object-fit: cover; }
+        .btn-change-pfp { position: absolute; bottom: 0; right: 0; background: var(--bts-purple); color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1rem;}
+
+        /* Soporte Modal */
+        .file-upload-group { margin-top: 15px; }
+        .file-inputs-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 10px; }
+        .file-input-wrapper { 
+            width: 100%; height: 100px; background: rgba(0,0,0,0.5); border: 2px dashed rgba(255,255,255,0.2); 
+            border-radius: 10px; display: flex; justify-content: center; align-items: center; 
+            cursor: pointer; position: relative; overflow: hidden; transition: var(--transition);
+        }
+        .file-input-wrapper:hover { border-color: var(--bts-pink); background: rgba(255,105,180,0.1); }
+        .file-input-wrapper i { font-size: 1.5rem; color: var(--text-muted); }
+        .file-input-wrapper input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .file-preview { position: absolute; inset: 0; background-size: cover; background-position: center; display: none; }
+        .file-input-wrapper.has-file .file-preview { display: block; }
+        .file-input-wrapper.has-file i { display: none; }
+
+        /* Lista Bloqueados */
+        .blocked-list-item { 
+            display: flex; align-items: center; justify-content: space-between; 
+            background: rgba(255,0,0,0.05); padding: 10px 15px; border-radius: 8px; margin-bottom: 10px;
+            border: 1px solid rgba(255,0,0,0.1);
+        }
+        .blocked-user-info { display: flex; align-items: center; gap: 10px; }
+        .blocked-pfp { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #555;}
+        .blocked-name { font-size: 0.9rem; }
+        .btn-unblock { background: #444; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7rem;}
+        .btn-unblock:hover { background: #555; }
+
+        /* Zoom Modal */
+        #modalZoom .modal-content { background: transparent; border: none; box-shadow: none; padding: 0; max-width: none; width: auto; display: flex; justify-content: center; align-items: center;}
+        #modalZoom .card-wrapper { width: 350px; height: 500px; }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: var(--bts-purple); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--bts-pink); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 10px; padding: 10px; text-align: center;}
+            .header-right { flex-direction: column; gap: 10px; width: 100%;}
+            .music-player, .user-profile-header { width: 100%; justify-content: center; }
+            nav { top: 110px; padding: 10px; flex-wrap: wrap; }
+            nav button { padding: 5px 15px; font-size: 0.7rem; }
+            .section { padding: 20px 3%; }
+            .card-wrapper { width: 160px; height: 240px; }
+            .wheel-container { width: 280px; height: 280px; }
+            .social-actions { gap: 10px; }
+            .social-btn { padding: 10px 15px; font-size: 0.8rem; }
+            .modal-content { padding: 20px; }
+            #modalZoom .card-wrapper { width: 260px; height: 380px; }
+        }
+        /* Solo añade esto para arreglar el menú de canciones */
+        select {
+            background-color: #1a0a2e !important;
+            color: white !important;
+        }
+
+        select option {
+            background-color: #1a0a2e !important;
+            color: white !important;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div id="loader">
+        <div class="heart-loader">💜</div>
+        <div class="loader-text">BORAHAE</div>
+    </div>
+
+    <div class="bg-animated"></div>
+
+    <header>
+        <div class="header-left">
+            <h1>SKY BTS CARDS</h1>
+        </div>
+        <div class="header-right">
+            <div class="music-player">
+                <audio id="bg-music" loop><source id="audio-src" src="" type="audio/mpeg"></audio>
+                <i class="fas fa-music" style="color: var(--bts-pink); font-size: 0.8rem;"></i>
+                <select id="song-select" onchange="changeSong()">
+                    <option value="">Canción...</option>
+                    <option value="canciones/dynamite.mp3">Dynamite</option>
+                    <option value="canciones/butter.mp3">Butter</option>
+                    <option value="canciones/yet_to_come.mp3">Yet To Come</option>
+                </select>
+                <button onclick="toggleMusic()" id="play-btn" class="play-btn">▶ PLAY</button>
+            </div>
+
+            <div class="user-profile-header" id="userHeaderWidget">
+                <img src="https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg" alt="PFP" class="pfp-header" id="headerPfp">
+                <span class="username-header" id="headerUsername">NeoSky</span>
+                <i class="fas fa-chevron-down" style="font-size: 0.7rem; color: var(--text-muted);"></i>
+                
+                <div class="profile-dropdown" id="profileDropdown">
+                    <ul>
+                        <li onclick="openModal('modalViewProfile')"><i class="fas fa-user"></i> Ver mi perfil</li>
+                        <li onclick="openModal('modalEditProfile')"><i class="fas fa-user-edit"></i> Editar mi perfil</li>
+                        <li onclick="openModal('modalBlocked')"><i class="fas fa-ban"></i> Bloqueados</li>
+                        <li onclick="openModal('modalSupport')"><i class="fas fa-headset"></i> Ayuda y Soporte</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <button class="active" onclick="showSec('collection', this)">COLECCIÓN</button>
+        <button onclick="showSec('gacha', this)">RULETA</button>
+        <button onclick="showSec('redeem', this)">CANJEAR</button>
+        <button onclick="showSec('social', this)">SOCIAL</button>
+    </nav>
+
+    <main>
+        <section id="collection" class="section active">
+            <h2 class="section-title">Mi Inventario</h2>
+            <p class="section-subtitle">Expande Tu coleccion</p>
+            <div class="card-grid">
+                <div class="card-wrapper">
+                    <div class="card-main">
+                        <div class="card-bg" style="background-image: url('https://png.pngtree.com/thumb_back/fh260/background/20230325/pngtree-laser-spotlight-show-performance-stage-dance-decoration-image_2104671.jpg');"></div>
+                        <img src="https://www.nicepng.com/png/full/149-1493757_bts-and-taehyung-image-kim-taehyung-mic-drop.png" class="card-character">
+                    </div>
+                </div>
+                <div class="card-wrapper rarity-legendary">
+                    <div class="card-main">
+                        <div class="card-bg" style="background-image: url('https://wallpapers.com/images/hd/concert-background-d4zewofzhvhqaesl.jpg');"></div>
+                        <img src="https://www.pngmart.com/files/12/Jungkook-PNG-Free-Download.png" class="card-character">
+                    </div>
+                </div>
+                <div class="card-wrapper">
+                    <div class="card-main">
+                        <div class="card-bg" style="background-image: url('https://img.freepik.com/vector-gratis/papel-tapiz-blanco-abstracto_23-2148820820.jpg?semt=ais_incoming&w=740&q=80');"></div>
+                        <img src="https://cdn.getcrowder.com/images/fc438aa8-9fd9-4bde-858a-cc7e3187efdf-btsartista.png" class="card-character">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="gacha" class="section">
+            <h2 class="section-title">Ruleta de Premios</h2>
+            <p class="section-subtitle">Prueba tu suerte para obtener nuevas cartas.</p>
+            <p style="margin-bottom: 20px;">Giros disponibles hoy: <span id="spin-count" style="color: var(--bts-pink); font-weight: bold; font-size: 1.2rem;">2</span></p>
+            
+            <div class="wheel-container" style="position: relative; width: 320px; height: 320px; margin: 0 auto 30px auto;">
+                <div class="wheel-indicator" style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid var(--bts-pink); z-index: 100;"></div>
+                
+                <div id="wheel" style="width: 100%; height: 100%; border-radius: 50%; border: 8px solid white; position: relative; overflow: hidden; transition: transform 5s cubic-bezier(0.15, 0, 0.15, 1); background: conic-gradient(#731d63 0deg 45deg, #641d73 45deg 90deg, #4f41ba 90deg 135deg, #7e41ba 135deg 180deg, #731d63 180deg 225deg, #641d73 225deg 270deg, #4f41ba 270deg 315deg, #7e41ba 315deg 360deg);">
+                    <div class="wheel-inner">
+                        <div style="position: absolute; width: 50%; height: 40px; top: 50%; left: 50%; transform-origin: 0% 50%; transform: translate(0, -50%) rotate(22.5deg); color: white; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px;">Giro Extra😎</div>
+                        <div style="position: absolute; width: 50%; height: 40px; top: 50%; left: 50%; transform-origin: 0% 50%; transform: translate(0, -50%) rotate(67.5deg); color: white; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px;">1 Card❤️</div>
+                        <div style="position: absolute; width: 50%; height: 40px; top: 50%; left: 50%; transform-origin: 0% 50%; transform: translate(0, -50%) rotate(112.5deg); color: white; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px;">Lo siento🥺</div>
+                        <div style="position: absolute; width: 50%; height: 40px; top: 50%; left: 50%; transform-origin: 0% 50%; transform: translate(0, -50%) rotate(157.5deg); color: white; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px;">2 Cards👑</div>
+                        <div style="position: absolute; width: 50%; height: 40px; top: 50%; left: 50%; transform-origin: 0% 50%; transform: translate(0, -50%) rotate(202.5deg); color: white; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px;">Giro Extra😎</div>
+                        <div style="position: absolute; width: 50%; height: 40px; top: 50%; left: 50%; transform-origin: 0% 50%; transform: translate(0, -50%) rotate(247.5deg); color: white; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px;">1 Card❤️</div>
+                        <div style="position: absolute; width: 50%; height: 40px; top: 50%; left: 50%; transform-origin: 0% 50%; transform: translate(0, -50%) rotate(292.5deg); color: white; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px;">Lo siento🥺</div>
+                        <div style="position: absolute; width: 50%; height: 40px; top: 50%; left: 50%; transform-origin: 0% 50%; transform: translate(0, -50%) rotate(337.5deg); color: white; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px;">2 Cards👑</div>
+                    </div>
+                </div>
+                <div class="wheel-center" style="position: absolute; width: 60px; height: 60px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; display: flex; align-items: center; justify-content: center; border: 3px solid var(--bts-purple); font-weight: bold; color: var(--bts-purple);">⟭𝐁𝐓𝐒⟬</div>
+            </div>
+            
+            <div id="result" class="result-display" style="margin: 20px 0; min-height: 30px; font-weight: bold; color: var(--bts-pink);"></div>
+            
+            <div style="max-width: 300px; margin: 0 auto;">
+                <button class="btn-action" id="spin-button" onclick="spin()" style="width: 100%; padding: 15px; background: linear-gradient(45deg, var(--bts-purple), var(--bts-pink)); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; text-transform: uppercase;">GIRAR RULETA</button>
+            </div>
+        </section>
+
+        <section id="redeem" class="section">
+            <h2 class="section-title">Canjear Código</h2>
+            <p class="section-subtitle">Ingresa códigos especiales para recibir recompensas exclusivas.</p>
+            <div class="panel">
+                <div class="form-group">
+                    <input type="text" placeholder="CÓDIGO ARMY EXCLUSIVO" style="text-align: center; text-transform: uppercase; font-size: 1.1rem; letter-spacing: 2px;">
+                </div>
+                <button class="btn-action">RECLAMAR RECOMPENSA</button>
+            </div>
+        </section>
+
+        <section id="social" class="section">
+            <h2 class="section-title">Comunidad</h2>
+            <p class="section-subtitle">Conecta con otros ARMYs, chatea e intercambia cartas.</p>
+            
+            <div class="social-actions">
+                <button class="social-btn" onclick="openModal('modalAddFriend')"><i class="fas fa-user-plus"></i> Agregar Amigo</button>
+                <button class="social-btn" onclick="toggleSocialContent('globalChat')"><i class="fas fa-comments"></i> Chat Global</button>
+                <button class="social-btn" onclick="toggleSocialContent('friendsList')"><i class="fas fa-users"></i> Mis Amigos (<span id="friend-count-badge">3</span>)</button>
+            </div>
+
+            <div id="social-friendsList" class="social-content-area active">
+                <div class="friends-list" id="friendsListContainer">
+                    <div class="friend-card" onclick="showFriendOptions(event, 'user123', this)">
+                        <img src="https://i.pinimg.com/originals/f3/8c/1b/f38c1b3f7f2d01867c46f1406f86646a.jpg" alt="PFP" class="friend-pfp">
+                        <div class="friend-info">
+                            <h4>Taetae_Gucci</h4>
+                            <p>ID: #TK95V</p>
+                        </div>
+                        <span class="status-dot status-online"></span>
+                    </div>
+                    <div class="friend-card" onclick="showFriendOptions(event, 'user456', this)">
+                        <img src="https://i.pinimg.com/originals/cb/e6/7d/cbe67d34b17812553b49e3f6f1c4632c.jpg" alt="PFP" class="friend-pfp">
+                        <div class="friend-info">
+                            <h4>AgustD_Fan</h4>
+                            <p>ID: #SG93Y</p>
+                        </div>
+                        <span class="status-dot status-offline"></span>
+                    </div>
+                    <div class="friend-card" onclick="showFriendOptions(event, 'user789', this)">
+                        <img src="https://i.pinimg.com/originals/0c/b1/0c/0cb10c4953b06990d9a6c6a46a6f116a.jpg" alt="PFP" class="friend-pfp">
+                        <div class="friend-info">
+                            <h4>Jiminie_Mochi</h4>
+                            <p>ID: #JM95J</p>
+                        </div>
+                        <span class="status-dot status-online"></span>
+                    </div>
+                </div>
+                
+                <div class="friend-options-menu" id="friendOptionsMenu">
+                    <ul>
+                        <li class="opts-msg" onclick="handleFriendAction('message')"><i class="fas fa-envelope"></i> Enviar Mensaje</li>
+                        <li class="opts-del" onclick="handleFriendAction('delete')"><i class="fas fa-user-times"></i> Eliminar</li>
+                        <li class="opts-block" onclick="handleFriendAction('block')"><i class="fas fa-ban"></i> Bloquear</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="social-globalChat" class="social-content-area">
+                <div class="panel" style="max-width: 100%;">
+                    <h3><i class="fas fa-comments"></i> Chat Global ARMY</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Conectando al servidor de chat...</p>
+                    <div style="height: 300px; background: rgba(0,0,0,0.3); border-radius: 10px; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.05);">
+                        <p style="color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Cargando mensajes...</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <input type="text" placeholder="Escribe tu mensaje borahae..." disabled>
+                        <button class="btn-action" style="width: auto; margin: 0;" disabled>Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modalZoom" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div id="zoomContent"></div>
+        </div>
+    </div>
+
+    <div id="modalAddFriend" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-user-plus"></i> Buscar ARMYs</h3>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">Ingresa el Nombre de Usuario o la ID única (#AAAAA) para enviar solicitud.</p>
+            <div class="form-group">
+                <input type="text" placeholder="Ej: ArmyBts_95 o #TK95V" style="text-align: center;">
+            </div>
+            <button class="btn-action">ENVIAR SOLICITUD</button>
+        </div>
+    </div>
+
+    <div id="modalViewProfile" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div class="profile-v-header">
+                <img src="https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg" alt="PFP" class="profile-v-pfp" id="viewPfp">
+                <div class="profile-v-info">
+                    <h2 id="viewUsername">NeoSky</h2>
+                    <p id="viewUserid">ID: #RM94N</p>
+                </div>
+            </div>
+            
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="statCards">3</div>
+                    <div class="stat-label">Cartas</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statFriends">3</div>
+                    <div class="stat-label">Amigos</div>
+                </div>
+            </div>
+
+            <div class="profile-details-section">
+                <p class="details-title">Descripción</p>
+                <div class="details-content" id="viewDesc">RM biased. Amante de la lectura y el arte. Namjooning is a lifestyle. 🐨💙🌿</div>
+            </div>
+            
+            <div class="profile-details-section">
+                <p class="details-title">Hobbies</p>
+                <div class="tags-container" id="viewHobbies">
+                    <span class="tag">Lectura</span>
+                    <span class="tag">Museos</span>
+                    <span class="tag">Plantas</span>
+                    <span class="tag">Bicicleta</span>
+                </div>
+            </div>
+            
+            <div class="profile-details-section">
+                <p class="details-title">Canciones Favoritas</p>
+                <div class="tags-container" id="viewSongs">
+                    <span class="tag">Wild Flower</span>
+                    <span class="tag">Trivia: Love</span>
+                    <span class="tag">Spring Day</span>
+                    <span class="tag">Mikrokosmos</span>
+                </div>
+            </div>
+            
+            <div class="profile-details-section">
+                <p class="details-title">Gustos</p>
+                <div class="tags-container" id="viewTastes">
+                    <span class="tag">Café</span>
+                    <span class="tag">Invierno</span>
+                    <span class="tag">Arte Abstracto</span>
+                </div>
+            </div>
+            
+            <button class="btn-secondary" style="width: 100%;" onclick="openModal('modalEditProfile')"><i class="fas fa-edit"></i> Editar Perfil</button>
+        </div>
+    </div>
+
+    <div id="modalEditProfile" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-user-edit"></i> Configurar Perfil</h3>
+            </div>
+            
+            <div class="edit-pfp-container">
+                <img src="https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg" alt="PFP Preview" class="edit-pfp-preview" id="editPfpPreview">
+                <button class="btn-change-pfp" title="Cambiar Foto de Perfil"><i class="fas fa-camera"></i></button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Nombre de Usuario</label>
+                <input type="text" id="editUsername" value="NeoSky">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Descripción</label>
+                <textarea id="editDesc">RM biased. Amante de la lectura y el arte. Namjooning is a lifestyle. 🐨💙🌿</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Hobbies (separados por coma)</label>
+                <input type="text" id="editHobbies" value="Lectura, Museos, Plantas, Bicicleta">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Canciones Favoritas (separadas por coma)</label>
+                <input type="text" id="editSongs" value="Wild Flower, Trivia: Love, Spring Day, Mikrokosmos">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Gustos (separados por coma)</label>
+                <input type="text" id="editTastes" value="Café, Invierno, Arte Abstracto">
+            </div>
+            
+            <button class="btn-action" onclick="saveProfile()"><i class="fas fa-save"></i> GUARDAR CAMBIOS</button>
+        </div>
+    </div>
+
+    <div id="modalBlocked" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-ban"></i> Usuarios Bloqueados</h3>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">Lista de personas que no pueden contactarte ni ver tu perfil.</p>
+            
+            <div id="blockedListContainer">
+                <div class="blocked-list-item" id="blocked-u1">
+                    <div class="blocked-user-info">
+                        <img src="https://i.pinimg.com/originals/44/21/63/442163b4f6e166e9f291a1a9e34a6671.jpg" alt="PFP" class="blocked-pfp">
+                        <span class="blocked-name">Hater_Solo_1</span>
+                    </div>
+                    <button class="btn-unblock" onclick="unblockUser('blocked-u1')">Desbloquear</button>
+                </div>
+                 <div class="blocked-list-item" id="blocked-u2">
+                    <div class="blocked-user-info">
+                        <img src="https://i.pinimg.com/originals/8a/8d/62/8a8d6266ae534b07f87f94b150c90c64.jpg" alt="PFP" class="blocked-pfp">
+                        <span class="blocked-name">SpamBot_XYZ</span>
+                    </div>
+                    <button class="btn-unblock" onclick="unblockUser('blocked-u2')">Desbloquear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalSupport" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-headset"></i> Centro de Soporte</h3>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">Describe tu problema técnico o reporta un error. Te responderemos pronto.</p>
+            
+            <form id="supportForm" onsubmit="submitSupport(event)">
+                <div class="form-group" style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">Tus datos de usuario se incluirán automáticamente:</p>
+                    <p style="font-weight: bold; color: white;">Usuario: <span id="supportUsername">ArmyKoya_94</span></p>
+                    <p style="font-weight: bold; color: var(--bts-pink);">ID: <span id="supportUserid">#RM94N</span></p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tipo de Problema</label>
+                    <select class="form-input">
+                        <option value="bug">Error Técnico (Bug)</option>
+                        <option value="billing">Problema con Pagos</option>
+                        <option value="account">Acceso a Cuenta</option>
+                        <option value="report">Reportar Usuario</option>
+                        <option value="other">Otro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Descripción del Problema</label>
+                    <textarea placeholder="Detalla lo sucedido, pasos para reproducir el error, etc..." required></textarea>
+                </div>
+
+                <div class="file-upload-group">
+                    <label class="form-label">Adjuntar Imágenes (Máx. 5)</label>
+                    <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px;">Formatos soportados: JPG, PNG. Máx 5MB por imagen.</p>
+                    <div class="file-inputs-container">
+                        <div class="file-input-wrapper" id="supportFile1">
+                            <div class="file-preview" id="preview1"></div>
+                            <i class="fas fa-plus"></i>
+                            <input type="file" accept="image/png, image/jpeg" onchange="handleFileSelect(event, 1)">
+                        </div>
+                        <div class="file-input-wrapper" id="supportFile2">
+                            <div class="file-preview" id="preview2"></div>
+                            <i class="fas fa-plus"></i>
+                            <input type="file" accept="image/png, image/jpeg" onchange="handleFileSelect(event, 2)">
+                        </div>
+                        <div class="file-input-wrapper" id="supportFile3">
+                            <div class="file-preview" id="preview3"></div>
+                            <i class="fas fa-plus"></i>
+                            <input type="file" accept="image/png, image/jpeg" onchange="handleFileSelect(event, 3)">
+                        </div>
+                        <div class="file-input-wrapper" id="supportFile4">
+                            <div class="file-preview" id="preview4"></div>
+                            <i class="fas fa-plus"></i>
+                            <input type="file" accept="image/png, image/jpeg" onchange="handleFileSelect(event, 4)">
+                        </div>
+                        <div class="file-input-wrapper" id="supportFile5">
+                            <div class="file-preview" id="preview5"></div>
+                            <i class="fas fa-plus"></i>
+                            <input type="file" accept="image/png, image/jpeg" onchange="handleFileSelect(event, 5)">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-action"><i class="fas fa-paper-plane"></i> ENVIAR TICKET</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ==== MOCK DATA (DATOS SIMULADOS LOCALMENTE) ====
+        const mockUser = {
+            username: "NeoSky",
+            userid: "#RM94N",
+            pfp: "https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg",
+            cards: 3,
+            friends: 3,
+            desc: "RM biased. Amante de la lectura y el arte. Namjooning is a lifestyle. 🐨💙🌿",
+            hobbies: "Lectura, Museos, Plantas, Bicicleta",
+            songs: "Wild Flower, Trivia: Love, Spring Day, Mikrokosmos",
+            tastes: "Café, Invierno, Arte Abstracto"
+        };
+
+        // ==== LÓGICA DE LA RULETA ====
+        let currentRotation = 0;
+        let isSpinning = false;
+        const MAX_SPINS = 2;
+
+        function getSpinData() {
+            const data = JSON.parse(localStorage.getItem('neosky_spins')) || { count: 0, lastReset: Date.now() };
+            const now = Date.now();
+            if (now - data.lastReset > 86400000) {
+                return { count: 0, lastReset: now };
+            }
+            return data;
+        }
+
+        function saveSpinData(data) {
+            localStorage.setItem('neosky_spins', JSON.stringify(data));
+        }
+
+        function updateSpinUI() {
+            const spinData = getSpinData();
+            const spinsLeft = Math.max(0, MAX_SPINS - spinData.count);
+            const countEl = document.getElementById('spin-count');
+            if (countEl) countEl.innerText = spinsLeft;
+        }
+
+        function spin() {
+            if (isSpinning) return;
+
+            let spinData = getSpinData();
+            if (spinData.count >= MAX_SPINS) {
+                alert("¡Ya usaste tus 2 giros de hoy! Vuelve en 24 horas ARMY. ✨");
+                return;
+            }
+
+            const wheel = document.getElementById('wheel');
+            const resultDiv = document.getElementById('result');
+            const spinBtn = document.getElementById('spin-button');
+            
+            // EL ÚNICO CAMBIO: Este orden compensa el desfase visual de la rueda
+            const prizes = [
+                "1 Card ❤️",     
+                "Giro Extra😎",  
+                "2 Cards👑",     
+                "Lo siento🥺",   
+                "1 Card ❤️",     
+                "Giro Extra😎",  
+                "2 Cards👑",     
+                "Lo siento🥺"    
+            ];
+            
+            isSpinning = true;
+            if (spinBtn) spinBtn.disabled = true;
+            if (resultDiv) resultDiv.innerText = "Girando...";
+
+            const prizeIndex = Math.floor(Math.random() * prizes.length);
+            const resultText = prizes[prizeIndex];
+
+            // CÁLCULO DE PRECISIÓN CORREGIDO
+            const targetAngle = (prizeIndex * 45) + 22.5;
+            
+            // Mantiene la fluidez y asegura que caiga siempre en el lugar correcto
+            currentRotation = currentRotation - (currentRotation % 360) + 1440 + targetAngle; 
+            
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                isSpinning = false;
+                if (spinBtn) spinBtn.disabled = false;
+                
+                spinData.count++;
+                saveSpinData(spinData);
+                updateSpinUI();
+                
+                if (resultDiv) {
+                    resultDiv.innerText = "¡Resultado: " + resultText + "!";
+                }
+            }, 5000); 
+        }
+
+        // ==== INICIALIZACIÓN Y LOADER ====
+        window.addEventListener('load', () => {
+            populateUserProfileData();
+            updateSpinUI(); // Actualizar contador al cargar la página
+            
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 800);
+            }, 2000); 
+            apply3DEffect();
+        });
+
+        // ==== GESTIÓN DE PANELES Y NAVEGACIÓN ====
+        function showSec(id, btn) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+            closeFriendOptions(); 
+        }
+
+        // ==== GESTIÓN DE MODALES ====
+        function openModal(modalId) {
+            closeProfileDropdown();
+            closeFriendOptions();
+            
+            const modal = document.getElementById(modalId);
+            modal.classList.add('active');
+            
+            if(modalId === 'modalViewProfile') populateViewProfile();
+            if(modalId === 'modalEditProfile') populateEditProfileForm();
+
+            apply3DEffect(); 
+        }
+
+        function closeModal() {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+            document.getElementById('zoomContent').innerHTML = ""; 
+        }
+
+        function closeModalOnOverlay(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                closeModal();
+            }
+        }
+
+        // ==== EFECTO 3D DE CARTAS ====
+        function apply3DEffect() {
+            const wrappers = document.querySelectorAll('.card-wrapper');
+            wrappers.forEach(w => {
+                const card = w.querySelector('.card-main');
+                if(w.dataset.listenerAdded) return;
+                w.dataset.listenerAdded = true;
+
+                w.addEventListener('mousemove', (e) => {
+                    const rect = w.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width - 0.5; 
+                    const y = (e.clientY - rect.top) / rect.height - 0.5; 
+                    
+                    card.style.transform = `rotateX(${y * -40}deg) rotateY(${x * 40}deg) scale(1.02)`;
+                });
+                
+                w.addEventListener('mouseleave', () => {
+                    card.style.transform = `rotateX(0deg) rotateY(0deg) scale(1)`;
+                });
+            });
+        }
+
+        // ==== LÓGICA DE ZOOM CARTA ====
+        function openZoom(el) {
+            const overlay = document.getElementById('modalZoom');
+            const clone = el.cloneNode(true);
+            clone.removeAttribute('onclick'); 
+            document.getElementById('zoomContent').innerHTML = "";
+            document.getElementById('zoomContent').appendChild(clone);
+            overlay.classList.add('active');
+            apply3DEffect(); 
+        }
+        
+        // ==== GESTIÓN DE PERFIL DE USUARIO ====
+        function populateUserProfileData() {
+            document.getElementById('headerPfp').src = mockUser.pfp;
+            document.getElementById('headerUsername').innerText = mockUser.username;
+            document.getElementById('supportUsername').innerText = mockUser.username;
+            document.getElementById('supportUserid').innerText = mockUser.userid;
+        }
+
+        const userHeaderWidget = document.getElementById('userHeaderWidget');
+        const profileDropdown = document.getElementById('profileDropdown');
+
+        userHeaderWidget.addEventListener('click', (e) => {
+            e.stopPropagation();
+            profileDropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', () => closeProfileDropdown());
+        
+        function closeProfileDropdown() { profileDropdown.classList.remove('active'); }
+
+        function populateViewProfile() {
+            document.getElementById('viewPfp').src = mockUser.pfp;
+            document.getElementById('viewUsername').innerText = mockUser.username;
+            document.getElementById('viewUserid').innerText = mockUser.userid;
+            document.getElementById('statCards').innerText = mockUser.cards;
+            document.getElementById('statFriends').innerText = mockUser.friends;
+            document.getElementById('viewDesc').innerText = mockUser.desc;
+            
+            generateTags('viewHobbies', mockUser.hobbies);
+            generateTags('viewSongs', mockUser.songs);
+            generateTags('viewTastes', mockUser.tastes);
+        }
+
+        function generateTags(containerId, commaString) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = "";
+            if(!commaString) return;
+            const tags = commaString.split(',').map(s => s.trim()).filter(s => s);
+            tags.forEach(tagText => {
+                const span = document.createElement('span');
+                span.className = 'tag';
+                span.innerText = tagText;
+                container.appendChild(span);
+            });
+        }
+
+        function populateEditProfileForm() {
+            document.getElementById('editPfpPreview').src = mockUser.pfp;
+            document.getElementById('editUsername').value = mockUser.username;
+            document.getElementById('editDesc').value = mockUser.desc;
+            document.getElementById('editHobbies').value = mockUser.hobbies;
+            document.getElementById('editSongs').value = mockUser.songs;
+            document.getElementById('editTastes').value = mockUser.tastes;
+        }
+
+        function saveProfile() {
+            mockUser.username = document.getElementById('editUsername').value;
+            mockUser.desc = document.getElementById('editDesc').value;
+            mockUser.hobbies = document.getElementById('editHobbies').value;
+            mockUser.songs = document.getElementById('editSongs').value;
+            mockUser.tastes = document.getElementById('editTastes').value;
+            
+            populateUserProfileData();
+            
+            alert("¡Perfil actualizado ARMY!");
+            closeModal();
+            setTimeout(() => openModal('modalViewProfile'), 100);
+        }
+
+        // GESTIÓN SOCIAL
+        function toggleSocialContent(contentType) {
+            closeFriendOptions(); 
+            document.querySelectorAll('.social-content-area').forEach(a => a.classList.remove('active'));
+            document.getElementById(`social-${contentType}`).classList.add('active');
+        }
+
+        let selectedFriendId = null;
+        let selectedFriendCard = null;
+        const optsMenu = document.getElementById('friendOptionsMenu');
+
+        function showFriendOptions(event, friendId, cardEl) {
+            event.stopPropagation();
+            closeFriendOptions(); 
+            
+            selectedFriendId = friendId;
+            selectedFriendCard = cardEl;
+            
+            optsMenu.style.display = 'block';
+            
+            const rect = cardEl.getBoundingClientRect();
+            optsMenu.style.top = `${rect.top + window.scrollY + 10}px`;
+            optsMenu.style.left = `${rect.right + window.scrollX - 160}px`; 
+        }
+
+        document.addEventListener('click', (e) => {
+            if(!e.target.closest('.friend-options-menu') && !e.target.closest('.friend-card')) {
+                closeFriendOptions();
+            }
+        });
+
+        function closeFriendOptions() {
+            optsMenu.style.display = 'none';
+            selectedFriendId = null;
+            selectedFriendCard = null;
+        }
+
+        function handleFriendAction(action) {
+            if(!selectedFriendId) return;
+            const friendName = selectedFriendCard.querySelector('h4').innerText;
+
+            switch(action) {
+                case 'message':
+                    alert(`Abriendo chat privado con ${friendName}...`);
+                    break;
+                case 'delete':
+                    if(confirm(`¿Estás seguro de eliminar a ${friendName} de tus amigos borahae?`)) {
+                        selectedFriendCard.remove();
+                        alert(`${friendName} eliminado.`);
+                        updateFriendCountBadge(-1);
+                    }
+                    break;
+                case 'block':
+                    if(confirm(`¿Seguro que quieres bloquear a ${friendName}? No podrá contactarte.`)) {
+                        selectedFriendCard.remove();
+                        addFriendToBlockedList(friendName, selectedFriendCard.querySelector('.friend-pfp').src);
+                        alert(`${friendName} bloqueado.`);
+                        updateFriendCountBadge(-1);
+                    }
+                    break;
+            }
+            closeFriendOptions();
+        }
+
+        function updateFriendCountBadge(change) {
+            mockUser.friends += change;
+            const count = Math.max(0, mockUser.friends);
+            document.getElementById('friend-count-badge').innerText = count;
+            document.getElementById('statFriends').innerText = count;
+        }
+
+        // GESTIÓN BLOQUEADOS
+        const blockedContainer = document.getElementById('blockedListContainer');
+        let blockedCount = 2; 
+
+        function addFriendToBlockedList(name, pfp) {
+            blockedCount++;
+            const id = `blocked-new${blockedCount}`;
+            const div = document.createElement('div');
+            div.className = 'blocked-list-item';
+            div.id = id;
+            div.innerHTML = `
+                <div class="blocked-user-info">
+                    <img src="${pfp}" alt="PFP" class="blocked-pfp">
+                    <span class="blocked-name">${name}</span>
+                </div>
+                <button class="btn-unblock" onclick="unblockUser('${id}')">Desbloquear</button>
+            `;
+            blockedContainer.appendChild(div);
+        }
+
+        function unblockUser(itemId) {
+            const el = document.getElementById(itemId);
+            const name = el.querySelector('.blocked-name').innerText;
+            if(confirm(`¿Desbloquear a ${name}?`)) {
+                el.remove();
+                alert(`${name} desbloqueado.`);
+            }
+        }
+
+        // ==== GESTIÓN SOPORTE ====
+        function handleFileSelect(event, inputNumber) {
+            const input = event.target;
+            const wrapper = document.getElementById(`supportFile${inputNumber}`);
+            const preview = document.getElementById(`preview${inputNumber}`);
+            
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                if(file.size > 5 * 1024 * 1024) {
+                    alert(`Imagen demasiado grande. Máx 5MB.`);
+                    input.value = "";
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.style.backgroundImage = `url(${e.target.result})`;
+                    wrapper.classList.add('has-file');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function submitSupport(event) {
+            event.preventDefault();
+            alert("¡Ticket borahae enviado! Soporte revisará tu caso pronto.");
+            closeModal();
+            document.getElementById('supportForm').reset();
+            document.querySelectorAll('.file-input-wrapper').forEach(w => {
+                w.classList.remove('has-file');
+                w.querySelector('.file-preview').style.backgroundImage = "";
+            });
+        }
+
+        // ==== GESTIÓN MÚSICA ====
+        const audio = document.getElementById('bg-music');
+        let playing = false;
+        function changeSong() {
+            const s = document.getElementById('song-select');
+            if(s.value) { audio.src = s.value; if(playing) audio.play(); }
+        }
+        function toggleMusic() {
+            if(!audio.src) return alert("Selecciona una canción primero ARMY.");
+            if(playing) { audio.pause(); document.getElementById('play-btn').innerText = "▶ PLAY"; }
+            else { audio.play().catch(() => alert("Agrega links reales .mp3 para que funcione.")); document.getElementById('play-btn').innerText = "⏸ PAUSE"; }
+            playing = !playing;
+        }
+    </script>
+</body>
+</html>
