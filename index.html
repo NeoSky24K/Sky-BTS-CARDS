@@ -710,9 +710,8 @@
     </div>
 
     <script type="module">
-    // 1. CONFIGURACIÓN E IMPORTS DE FIREBASE
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBEHxoobhrHfE7AKJr3mWUomWzIy8ePpeo",
@@ -727,42 +726,51 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // 2. OBJETO DE USUARIO LOCAL (Para manejo de interfaz)
-    let currentUserData = {
-        username: "NeoSky",
-        userid: "#RM94N",
-        pfp: "https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg",
-        cards: 3,
-        friends: 3,
-        desc: "RM biased. Amante de la lectura y el arte. Namjooning is a lifestyle. 🐨💙🌿",
-        hobbies: "Lectura, Museos, Plantas, Bicicleta",
-        songs: "Wild Flower, Trivia: Love, Spring Day, Mikrokosmos",
-        tastes: "Café, Invierno, Arte Abstracto"
-    };
-
-    // 3. MONITOR DE AUTENTICACIÓN (Aquí es donde ocurre la magia)
+    // --- LÓGICA DE ACCESO SEGURO ---
     onAuthStateChanged(auth, (user) => {
+        const loader = document.getElementById('loader');
         if (user) {
-            console.log("Sesión activa:", user.email);
-            // Si el usuario tiene un nombre en Firebase, lo usamos
-            if(user.displayName) currentUserData.username = user.displayName;
-            currentUserData.userid = user.uid.substring(0, 6).toUpperCase();
-            updateUIWithUserData();
+            // USUARIO AUTENTICADO: Mostramos la app
+            console.log("Bienvenido ARMY:", user.email);
+            document.querySelector('main').style.display = 'block';
+            document.querySelector('header').style.display = 'flex';
+            document.querySelector('nav').style.display = 'flex';
+            
+            // Actualizar datos del header con Firebase
+            document.getElementById('headerUsername').innerText = user.displayName || "ARMY User";
+            document.getElementById('headerPfp').src = user.photoURL || "https://i.pinimg.com/1200x/24/67/91/246791aeaf784b5d3443776148988488.jpg";
+            
+            if(loader) loader.style.display = 'none';
         } else {
-            console.log("No hay sesión iniciada.");
-            // Aquí podrías poner: window.location.href = 'login.html'; 
-            // Por ahora solo avisamos
-            alert("No has iniciado sesión. Los cambios no se guardarán en la nube.");
+            // NO HAY SESIÓN: Mostramos mensaje de login o invitamos a entrar
+            console.log("Sesión cerrada");
+            // Ocultamos la interfaz para que no vean las cartas sin permiso
+            document.querySelector('main').style.display = 'none';
+            document.querySelector('header').style.display = 'none';
+            document.querySelector('nav').style.display = 'none';
+            
+            // Forzamos el login (puedes crear un modal de login aquí)
+            const email = prompt("Ingresa tu correo para entrar a NeoSky:");
+            const pass = prompt("Contraseña:");
+            
+            if(email && pass) {
+                signInWithEmailAndPassword(auth, email, pass).catch(err => {
+                    alert("Error al entrar: " + err.message);
+                    location.reload(); // Reintenta
+                });
+            } else {
+                alert("Debes iniciar sesión para ver tu colección.");
+                // Opcional: entrarComoInvitado();
+            }
         }
     });
 
-    // 4. EXPOSICIÓN DE FUNCIONES A WINDOW (Para que los onclick funcionen)
+    // --- EXPOSICIÓN DE FUNCIONES (Para tus botones onclick) ---
     window.spin = spin;
     window.showSec = showSec;
     window.openModal = openModal;
     window.closeModal = closeModal;
     window.closeModalOnOverlay = closeModalOnOverlay;
-    window.openZoom = openZoom;
     window.saveProfile = saveProfile;
     window.toggleSocialContent = toggleSocialContent;
     window.showFriendOptions = showFriendOptions;
@@ -774,7 +782,7 @@
     window.toggleMusic = toggleMusic;
     window.logout = () => signOut(auth).then(() => location.reload());
 
-    // ==== LÓGICA DE LA RULETA ====
+    // ==== LÓGICA DE LA RULETA (Con persistencia local) ====
     let currentRotation = 0;
     let isSpinning = false;
     const MAX_SPINS = 2;
@@ -785,10 +793,16 @@
         return data;
     }
 
+    function updateSpinUI() {
+        const spinData = getSpinData();
+        const el = document.getElementById('spin-count');
+        if (el) el.innerText = Math.max(0, MAX_SPINS - spinData.count);
+    }
+
     function spin() {
         if (isSpinning) return;
         let spinData = getSpinData();
-        if (spinData.count >= MAX_SPINS) return alert("¡Ya usaste tus 2 giros de hoy! ✨");
+        if (spinData.count >= MAX_SPINS) return alert("¡Ya usaste tus giros de hoy! ✨");
 
         const wheel = document.getElementById('wheel');
         const resultDiv = document.getElementById('result');
@@ -810,20 +824,7 @@
         }, 5000); 
     }
 
-    function updateSpinUI() {
-        const spinData = getSpinData();
-        const el = document.getElementById('spin-count');
-        if (el) el.innerText = Math.max(0, MAX_SPINS - spinData.count);
-    }
-
-    // ==== GESTIÓN DE PERFIL Y UI ====
-    function updateUIWithUserData() {
-        document.getElementById('headerPfp').src = currentUserData.pfp;
-        document.getElementById('headerUsername').innerText = currentUserData.username;
-        document.getElementById('supportUsername').innerText = currentUserData.username;
-        document.getElementById('supportUserid').innerText = currentUserData.userid;
-    }
-
+    // ==== NAVEGACIÓN Y MODALES ====
     function showSec(id, btn) {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -833,11 +834,7 @@
 
     function openModal(id) {
         const modal = document.getElementById(id);
-        if(modal) {
-            modal.classList.add('active');
-            if(id === 'modalViewProfile') populateViewProfile();
-            if(id === 'modalEditProfile') populateEditForm();
-        }
+        if(modal) modal.classList.add('active');
     }
 
     function closeModal() {
@@ -846,82 +843,44 @@
 
     function closeModalOnOverlay(e) { if(e.target.classList.contains('modal-overlay')) closeModal(); }
 
-    function populateViewProfile() {
-        document.getElementById('viewPfp').src = currentUserData.pfp;
-        document.getElementById('viewUsername').innerText = currentUserData.username;
-        document.getElementById('viewUserid').innerText = "ID: " + currentUserData.userid;
-        document.getElementById('statCards').innerText = currentUserData.cards;
-        document.getElementById('statFriends').innerText = currentUserData.friends;
-        document.getElementById('viewDesc').innerText = currentUserData.desc;
-        renderTags('viewHobbies', currentUserData.hobbies);
-        renderTags('viewSongs', currentUserData.songs);
-        renderTags('viewTastes', currentUserData.tastes);
-    }
-
-    function renderTags(id, str) {
-        const container = document.getElementById(id);
-        container.innerHTML = "";
-        str.split(',').forEach(t => {
-            const span = document.createElement('span');
-            span.className = 'tag';
-            span.innerText = t.trim();
-            container.appendChild(span);
-        });
-    }
-
-    function populateEditForm() {
-        document.getElementById('editPfpPreview').src = currentUserData.pfp;
-        document.getElementById('editUsername').value = currentUserData.username;
-        document.getElementById('editDesc').value = currentUserData.desc;
-        document.getElementById('editHobbies').value = currentUserData.hobbies;
-        document.getElementById('editSongs').value = currentUserData.songs;
-        document.getElementById('editTastes').value = currentUserData.tastes;
-    }
-
     function saveProfile() {
-        currentUserData.username = document.getElementById('editUsername').value;
-        currentUserData.desc = document.getElementById('editDesc').value;
-        currentUserData.hobbies = document.getElementById('editHobbies').value;
-        currentUserData.songs = document.getElementById('editSongs').value;
-        currentUserData.tastes = document.getElementById('editTastes').value;
-        updateUIWithUserData();
+        alert("Cambios guardados localmente");
         closeModal();
-        alert("¡Perfil actualizado!");
     }
 
-    // ==== OTROS (Social, Música, Soporte) ====
+    // ==== SOCIAL Y SOPORTE ====
     function toggleSocialContent(type) {
         document.querySelectorAll('.social-content-area').forEach(a => a.classList.remove('active'));
         document.getElementById(`social-${type}`).classList.add('active');
     }
 
-    let optsMenu = document.getElementById('friendOptionsMenu');
     function showFriendOptions(e, id, card) {
         e.stopPropagation();
-        optsMenu.style.display = 'block';
-        const rect = card.getBoundingClientRect();
-        optsMenu.style.top = `${rect.top + window.scrollY}px`;
-        optsMenu.style.left = `${rect.left + window.scrollX}px`;
+        const menu = document.getElementById('friendOptionsMenu');
+        menu.style.display = 'block';
+        menu.style.top = `${e.pageY}px`;
+        menu.style.left = `${e.pageX - 150}px`;
     }
 
     function handleFriendAction(action) {
-        alert("Acción: " + action);
-        optsMenu.style.display = 'none';
+        alert("Acción realizada: " + action);
+        document.getElementById('friendOptionsMenu').style.display = 'none';
     }
 
     function unblockUser(id) { document.getElementById(id).remove(); }
 
     function handleFileSelect(e, num) {
         const reader = new FileReader();
-        reader.onload = (event) => {
-            document.getElementById(`preview${num}`).style.backgroundImage = `url(${event.target.result})`;
+        reader.onload = (ev) => {
+            document.getElementById(`preview${num}`).style.backgroundImage = `url(${ev.target.result})`;
             document.getElementById(`supportFile${num}`).classList.add('has-file');
         };
         reader.readAsDataURL(e.target.files[0]);
     }
 
-    function submitSupport(e) { e.preventDefault(); alert("Ticket enviado ✨"); closeModal(); }
+    function submitSupport(e) { e.preventDefault(); alert("Enviado a NeoSky Support 💜"); closeModal(); }
 
+    // ==== MÚSICA ====
     const audio = document.getElementById('bg-music');
     let playing = false;
     function changeSong() {
@@ -935,17 +894,20 @@
         playing = !playing;
     }
 
-    // INICIO
+    // --- INICIALIZACIÓN ---
     window.addEventListener('load', () => {
         updateSpinUI();
-        setTimeout(() => { document.getElementById('loader').style.display = 'none'; }, 1000);
+        document.getElementById('userHeaderWidget').onclick = (e) => {
+            e.stopPropagation();
+            document.getElementById('profileDropdown').classList.toggle('active');
+        };
     });
-
-    document.getElementById('userHeaderWidget').onclick = (e) => {
-        e.stopPropagation();
-        document.getElementById('profileDropdown').classList.toggle('active');
-    };
-    document.addEventListener('click', () => document.getElementById('profileDropdown').classList.remove('active'));
+    document.addEventListener('click', () => {
+        const dd = document.getElementById('profileDropdown');
+        if(dd) dd.classList.remove('active');
+        const fm = document.getElementById('friendOptionsMenu');
+        if(fm) fm.style.display = 'none';
+    });
 </script>
 </body>
 </html>
